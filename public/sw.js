@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 /** PWA shell only — do not intercept Next.js page/RSC requests (breaks client routing). */
 
-const CACHE = "upuan-mesa-static-v4";
+const CACHE = "upuan-mesa-static-v5";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

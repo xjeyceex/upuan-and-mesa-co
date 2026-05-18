@@ -1,32 +1,97 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { OrderStatusBadge } from "@/components/OrderStatusBadge";
 import { ReplacementPanel } from "@/components/ReplacementPanel";
 import { HelpTip } from "@/components/ux/HelpTip";
 import { PageHeader } from "@/components/ux/PageHeader";
-import { prisma } from "@/lib/db";
-import { getEarningsSummary } from "@/lib/earnings";
 import { formatPeso, orderBalance } from "@/lib/money";
-import { getReplacementSummary } from "@/lib/replacements";
-import { getPricingSettings } from "@/lib/pricing-settings";
+import type { PricingConfig } from "@/lib/pricing-config";
+import type { ReplacementRow } from "@/lib/replacements";
+import type { OrderStatus } from "@/generated/prisma/client";
 
-export const dynamic = "force-dynamic";
+type EarningsSummary = {
+  totalCollected: number;
+  outstanding: number;
+  totalQuoted: number;
+  thisMonthCollected: number;
+  thisMonthQuoted: number;
+  collectedFromReturned: number;
+  quotedFromReturned: number;
+  orderCount: number;
+  paidInFullCount: number;
+  cancelledCount: number;
+};
 
-export default async function EarningsPage() {
-  const pricing = await getPricingSettings(prisma);
-  const summary = await getEarningsSummary(prisma);
-  const replacements = await getReplacementSummary(prisma, pricing);
+type Order = {
+  id: string;
+  orderNumber: string;
+  customerName: string | null;
+  eventName: string | null;
+  status: OrderStatus;
+  offerTotal: number;
+  amountPaid: number;
+};
 
-  const orders = await prisma.rentalOrder.findMany({
-    where: { status: { not: "CANCELLED" } },
-    orderBy: { createdAt: "desc" },
-    include: { lines: true },
-  });
+type EarningsData = {
+  summary: EarningsSummary;
+  replacements: {
+    rows: ReplacementRow[];
+    totalOwed: number;
+    unknownCount: number;
+  };
+  pricing: PricingConfig;
+  orders: Order[];
+};
+
+export default function EarningsPage() {
+  const [data, setData] = useState<EarningsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const res = await fetch("/api/earnings");
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? "Could not load money report");
+        if (!cancelled) setData(json);
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Could not load money report");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return <p className="text-muted">Loading money report…</p>;
+  }
+
+  if (error || !data) {
+    return (
+      <p className="rounded-xl bg-danger-soft px-4 py-3 text-sm text-red-400">
+        {error || "Could not load money report"}
+      </p>
+    );
+  }
+
+  const { summary, replacements, pricing, orders } = data;
 
   return (
     <div className="page-stack">
       <PageHeader
         title="Money"
-        description="How much customers have paid you, and what they still owe. This is money collected — not profit after buying new chairs."
+        description="How much customers have paid you, and what they still owe."
       />
 
       <HelpTip>Payments from all rentals are totaled here.</HelpTip>
@@ -39,11 +104,11 @@ export default async function EarningsPage() {
       />
 
       <section className="card-highlight">
-        <p className="text-sm font-semibold text-emerald-900">Total collected</p>
-        <p className="stat-value mt-1 text-emerald-700">
+        <p className="text-sm font-semibold text-emerald-300">Total collected</p>
+        <p className="stat-value mt-1 text-emerald-400">
           {formatPeso(summary.totalCollected)}
         </p>
-        <p className="mt-2 text-base text-emerald-800">
+        <p className="mt-2 text-base text-muted">
           Every payment you recorded on your rentals, added together.
         </p>
       </section>
@@ -105,7 +170,7 @@ export default async function EarningsPage() {
                       <span className="text-muted">
                         Price {formatPeso(order.offerTotal)}
                       </span>
-                      <span className="font-medium text-emerald-700">
+                      <span className="font-medium text-emerald-400">
                         Paid {formatPeso(order.amountPaid)}
                       </span>
                       {balance > 0 && (
@@ -137,7 +202,7 @@ function StatCard({
 }) {
   const valueClass =
     tone === "emerald"
-      ? "text-emerald-700"
+      ? "text-emerald-400"
       : tone === "red"
         ? "text-red-400"
         : "text-foreground";

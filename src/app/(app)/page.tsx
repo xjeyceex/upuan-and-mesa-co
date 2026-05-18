@@ -1,51 +1,101 @@
+"use client";
+
 import Link from "next/link";
-import { prisma } from "@/lib/db";
+import { useEffect, useState } from "react";
 import { QuickAction } from "@/components/ux/QuickAction";
 import { HelpTip } from "@/components/ux/HelpTip";
 import { PageHeader } from "@/components/ux/PageHeader";
 import { ReplacementPanel } from "@/components/ReplacementPanel";
-import { getEarningsSummary } from "@/lib/earnings";
 import { formatPeso, orderBalance } from "@/lib/money";
 import { orderLinesSummary } from "@/lib/item-display";
-import { getReplacementSummary } from "@/lib/replacements";
-import { getPricingSettings } from "@/lib/pricing-settings";
+import type { PricingConfig } from "@/lib/pricing-config";
+import type { ReplacementRow } from "@/lib/replacements";
+import type { ItemType, TableSize } from "@/generated/prisma/client";
 
-export const dynamic = "force-dynamic";
+type OrderLine = {
+  itemType: ItemType;
+  tableSize: TableSize | null;
+  hasCover: boolean;
+  quantity: number;
+};
 
-export default async function HomePage() {
-  const pricing = await getPricingSettings(prisma);
-  const earnings = await getEarningsSummary(prisma);
-  const replacements = await getReplacementSummary(prisma, pricing);
+type RecentOrder = {
+  id: string;
+  orderNumber: string;
+  customerName: string | null;
+  eventName: string | null;
+  offerTotal: number;
+  amountPaid: number;
+  lines: OrderLine[];
+};
 
-  const inWarehouse = await prisma.equipmentItem.count({
-    where: { status: "IN_WAREHOUSE" },
-  });
-  const out = await prisma.equipmentItem.count({ where: { status: "OUT" } });
+type HomeData = {
+  earnings: {
+    totalCollected: number;
+    outstanding: number;
+    orderCount: number;
+  };
+  replacements: {
+    rows: ReplacementRow[];
+    totalOwed: number;
+    unknownCount: number;
+  };
+  pricing: PricingConfig;
+  inWarehouse: number;
+  out: number;
+  bookedOnDeliveries: number;
+  stockNotLinked: boolean;
+  recentOrders: RecentOrder[];
+  isNew: boolean;
+};
 
-  const outOrders = await prisma.rentalOrder.findMany({
-    where: { status: "OUT" },
-    include: { lines: true },
-  });
-  const bookedOnDeliveries = outOrders.reduce(
-    (sum, order) => sum + order.lines.reduce((s, line) => s + line.quantity, 0),
-    0,
-  );
-  const stockNotLinked = bookedOnDeliveries > out;
+export default function HomePage() {
+  const [data, setData] = useState<HomeData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const recentOrders = await prisma.rentalOrder.findMany({
-    where: { status: { in: ["PENDING", "OUT"] } },
-    orderBy: { createdAt: "desc" },
-    take: 3,
-    include: { lines: true },
-  });
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const res = await fetch("/api/home");
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? "Could not load home");
+        if (!cancelled) setData(json);
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Could not load home");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const isNew = earnings.orderCount === 0 && inWarehouse === 0;
+  if (loading) {
+    return <p className="text-muted">Loading…</p>;
+  }
+
+  if (error || !data) {
+    return (
+      <p className="rounded-xl bg-danger-soft px-4 py-3 text-sm text-red-400">
+        {error || "Could not load home"}
+      </p>
+    );
+  }
+
+  const { earnings, replacements, pricing } = data;
 
   return (
     <div className="page-stack">
       <PageHeader title="Welcome" description="Rentals, stock, and payments in one place." />
 
-      {isNew ? (
+      {data.isNew ? (
         <HelpTip title="First time here?" variant="info">
           <ol className="list-decimal space-y-1 pl-4">
             <li>
@@ -78,8 +128,8 @@ export default async function HomePage() {
       />
 
       <section className="card-highlight">
-        <p className="text-sm font-semibold text-emerald-900">Money in your pocket</p>
-        <p className="stat-value mt-1 text-emerald-700">
+        <p className="text-sm font-semibold text-emerald-300">Money in your pocket</p>
+        <p className="stat-value mt-1 text-emerald-400">
           {formatPeso(earnings.totalCollected)}
         </p>
         <p className="mt-2 text-sm text-muted">
@@ -89,7 +139,7 @@ export default async function HomePage() {
         </p>
         <Link
           href="/earnings"
-          className="mt-2 inline-block text-sm font-semibold text-emerald-800 underline"
+          className="mt-2 inline-block text-sm font-semibold text-emerald-400 underline"
         >
           Open full money report →
         </Link>
@@ -98,33 +148,33 @@ export default async function HomePage() {
       <section className="grid grid-cols-2 gap-3">
         <div className="card">
           <p className="text-xs text-muted">In storage</p>
-          <p className="stat-value mt-1 text-emerald-700">{inWarehouse}</p>
+          <p className="stat-value mt-1 text-emerald-400">{data.inWarehouse}</p>
           <p className="mt-1 text-xs text-muted">In warehouse</p>
         </div>
         <div className="card">
           <p className="text-xs text-muted">At events now</p>
-          <p className="stat-value mt-1 text-sky-700">{out}</p>
+          <p className="stat-value mt-1 text-sky-400">{data.out}</p>
           <p className="mt-1 text-xs text-muted">
-            {bookedOnDeliveries > 0
-              ? `${bookedOnDeliveries} on delivered rentals`
+            {data.bookedOnDeliveries > 0
+              ? `${data.bookedOnDeliveries} on delivered rentals`
               : "Linked in stock"}
           </p>
         </div>
       </section>
 
-      {stockNotLinked && (
+      {data.stockNotLinked && (
         <HelpTip variant="info" title="Stock not fully linked">
-          Your rentals list {bookedOnDeliveries} items out, but only {out}{" "}
-          {out === 1 ? "is" : "are"} marked in stock. Open the rental and tap{" "}
+          Your rentals list {data.bookedOnDeliveries} items out, but only {data.out}{" "}
+          {data.out === 1 ? "is" : "are"} marked in stock. Open the rental and tap{" "}
           <strong>Link stock now</strong> so home counts match what you delivered.
         </HelpTip>
       )}
 
-      {recentOrders.length > 0 && (
+      {data.recentOrders.length > 0 && (
         <section className="card">
           <h2 className="section-title">Rentals in progress</h2>
           <ul className="mt-3 space-y-2">
-            {recentOrders.map((order) => (
+            {data.recentOrders.map((order) => (
               <li key={order.id}>
                 <Link
                   href={`/orders/${order.orderNumber}`}
@@ -140,7 +190,8 @@ export default async function HomePage() {
                       {orderBalance(order.offerTotal, order.amountPaid) > 0 && (
                         <span className="font-medium text-red-400">
                           {" "}
-                          · Still owes {formatPeso(orderBalance(order.offerTotal, order.amountPaid))}
+                          · Still owes{" "}
+                          {formatPeso(orderBalance(order.offerTotal, order.amountPaid))}
                         </span>
                       )}
                     </p>

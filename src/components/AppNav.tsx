@@ -11,6 +11,10 @@ const links = [
   { href: "/inventory", label: "Stock", short: "Stock" },
 ] as const;
 
+function isActive(pathname: string, href: string) {
+  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
+
 export function AppNav() {
   const pathname = usePathname();
   const router = useRouter();
@@ -19,12 +23,6 @@ export function AppNav() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
     router.refresh();
-  }
-
-  function go(href: string) {
-    if (pathname !== href && !(href !== "/" && pathname.startsWith(href))) {
-      router.push(href);
-    }
   }
 
   return (
@@ -48,10 +46,7 @@ export function AppNav() {
         </div>
         <nav className="mx-auto hidden max-w-3xl gap-2 px-5 pb-4 sm:flex">
           {links.map((link) => {
-            const active =
-              link.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(link.href);
+            const active = isActive(pathname, link.href);
             return (
               <Link
                 key={link.href}
@@ -76,21 +71,18 @@ export function AppNav() {
       >
         <div className="grid grid-cols-4">
           {links.map((link) => {
-            const active =
-              link.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(link.href);
+            const active = isActive(pathname, link.href);
             return (
-              <button
+              <Link
                 key={link.href}
-                type="button"
-                onClick={() => go(link.href)}
+                href={link.href}
+                prefetch={false}
                 className={`flex flex-col items-center py-3.5 text-xs font-semibold ${
                   active ? "text-accent" : "text-muted"
                 }`}
               >
                 <span className="text-base">{link.short}</span>
-              </button>
+              </Link>
             );
           })}
         </div>
