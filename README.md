@@ -29,14 +29,22 @@ Copy `.env.example` to `.env` for local dev. Data is stored in `dev.db` on your 
 
 On your PC, in this project folder (with Turso URL and token set):
 
-```bash
-# PowerShell — use your real values
-$env:DATABASE_URL="libsql://YOUR-DB.turso.io"
-$env:TURSO_AUTH_TOKEN="your-token"
+```powershell
+# PowerShell — quotes are required (because of :// in the URL)
+$env:DATABASE_URL = "libsql://YOUR-DB.turso.io"
+$env:TURSO_AUTH_TOKEN = "your-token-from-turso-dashboard"
 npm run db:deploy
 ```
 
-That applies the schema to Turso. You only repeat this when the schema changes.
+Example (use your real URL and token):
+
+```powershell
+$env:DATABASE_URL = "libsql://upuan-and-mesa-co-xjeyceex.aws-ap-south-1.turso.io"
+$env:TURSO_AUTH_TOKEN = "paste-your-token-here"
+npm run db:deploy
+```
+
+That creates all tables on Turso (uses the libSQL client — `prisma migrate deploy` does **not** work with `libsql://` URLs). Safe to run again; it skips if tables already exist.
 
 ### 3. Vercel (app)
 

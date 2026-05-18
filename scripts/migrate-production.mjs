@@ -7,8 +7,8 @@ import { execSync } from "node:child_process";
 const url = process.env.DATABASE_URL ?? "";
 
 if (url.startsWith("libsql:")) {
-  console.log("Applying migrations to Turso…");
-  execSync("npx prisma migrate deploy", { stdio: "inherit" });
+  console.log("Setting up Turso schema…");
+  execSync("node scripts/deploy-turso.mjs", { stdio: "inherit" });
 } else {
-  console.log("Skipping migrate deploy (local SQLite — not Turso).");
+  console.log("Skipping Turso setup (local SQLite — not Turso).");
 }
