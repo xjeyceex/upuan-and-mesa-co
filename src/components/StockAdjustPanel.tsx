@@ -64,46 +64,58 @@ export function StockAdjustPanel({ onUpdated }: { onUpdated?: () => void }) {
 
     setSavingKey(group.key);
 
-    const res = await fetch("/api/items/adjust", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        itemType: group.itemType,
-        tableSize: group.itemType === "TABLE" ? group.tableSize : undefined,
-        hasCover: group.itemType === "CHAIR" ? group.hasCover : false,
-        targetCount: parsed.value,
-      }),
-    });
+    try {
+      const res = await fetch("/api/items/adjust", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemType: group.itemType,
+          tableSize: group.itemType === "TABLE" ? group.tableSize : undefined,
+          hasCover: group.itemType === "CHAIR" ? group.hasCover : false,
+          targetCount: parsed.value,
+        }),
+      });
 
-    const data = await res.json();
-    setSavingKey(null);
+      const data = await res.json();
 
-    if (!res.ok) {
-      setError(data.error ?? "Could not update count");
-      return;
+      if (!res.ok) {
+        setError(data.error ?? "Could not update count");
+        return;
+      }
+
+      setGroups((prev) =>
+        prev.map((g) =>
+          g.key === group.key ? { ...g, total: parsed.value } : g,
+        ),
+      );
+      setDrafts((d) => ({ ...d, [group.key]: String(parsed.value) }));
+      onUpdated?.();
+    } finally {
+      setSavingKey(null);
     }
-
-    await load();
-    onUpdated?.();
   }
 
   if (loading) {
     return <p className="text-sm text-muted">Loading stock counts…</p>;
   }
 
-  const hasAny = groups.some((g) => g.total > 0);
+  const busy = savingKey !== null;
 
   return (
-    <section className="card space-y-3" id="adjust-stock">
+    <section className="card space-y-3" id="adjust-stock" aria-busy={busy}>
       <div>
         <h2 className="section-title">How many you own</h2>
         <p className="mt-1 text-sm text-muted">
-          Set the real count (e.g. 30 chairs). Adds or removes items in storage only.
+          Set the real count (e.g. 30 chairs). One quick save — no need to add one-by-one.
         </p>
       </div>
 
       {error && (
         <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-red-400">{error}</p>
+      )}
+
+      {busy && (
+        <p className="text-sm font-medium text-accent">Saving…</p>
       )}
 
       <ul className="space-y-2">
@@ -144,6 +156,7 @@ export function StockAdjustPanel({ onUpdated }: { onUpdated?: () => void }) {
                     type="text"
                     inputMode="numeric"
                     value={draft}
+                    disabled={busy}
                     onChange={(e) => {
                       setDrafts((d) => ({
                         ...d,
@@ -157,6 +170,7 @@ export function StockAdjustPanel({ onUpdated }: { onUpdated?: () => void }) {
                     type="button"
                     onClick={() => save(group)}
                     disabled={
+                      busy ||
                       !dirty ||
                       savingKey === group.key ||
                       cannotRemoveEnough ||
@@ -177,12 +191,6 @@ export function StockAdjustPanel({ onUpdated }: { onUpdated?: () => void }) {
           );
         })}
       </ul>
-
-      {!hasAny && (
-        <p className="text-sm text-muted">
-          Enter how many you have for each type, then tap <strong>Set</strong>.
-        </p>
-      )}
     </section>
   );
 }

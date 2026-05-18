@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { ItemStatus, ItemType, TableSize } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
-import { getNextCodes } from "@/lib/inventory";
+import { createEquipmentItems } from "@/lib/inventory";
 import { parseCountFromUnknown } from "@/lib/validate-numbers";
 
 const TABLE_SIZES: TableSize[] = ["FT_4", "FT_6", "FT_10"];
@@ -15,31 +15,51 @@ export async function GET(request: Request) {
   const q = searchParams.get("q")?.trim();
 
   const unassigned = searchParams.get("unassigned") === "true";
+  const list = searchParams.get("list") !== "0";
+  const limitRaw = parseInt(searchParams.get("limit") ?? "80", 10);
+  const limit = Number.isFinite(limitRaw)
+    ? Math.min(Math.max(limitRaw, 1), 200)
+    : 80;
 
-  const items = await prisma.equipmentItem.findMany({
-    where: {
-      ...(type ? { type } : {}),
-      ...(status ? { status } : {}),
-      ...(tableSize ? { tableSize } : {}),
-      ...(hasCover === "true"
-        ? { hasCover: true }
-        : hasCover === "false"
-          ? { hasCover: false }
-          : {}),
-      ...(unassigned ? { rentalOrderId: null } : {}),
-      ...(q
-        ? {
-            OR: [{ code: { contains: q } }, { notes: { contains: q } }],
-          }
+  const where = {
+    ...(type ? { type } : {}),
+    ...(status ? { status } : {}),
+    ...(tableSize ? { tableSize } : {}),
+    ...(hasCover === "true"
+      ? { hasCover: true }
+      : hasCover === "false"
+        ? { hasCover: false }
         : {}),
-    },
-    orderBy: { code: "asc" },
-    include: {
-      rentalOrder: { select: { orderNumber: true, eventName: true } },
-    },
-  });
+    ...(unassigned ? { rentalOrderId: null } : {}),
+    ...(q
+      ? {
+          OR: [{ code: { contains: q } }, { notes: { contains: q } }],
+        }
+      : {}),
+  };
 
-  return NextResponse.json(items);
+  if (!list) {
+    const total = await prisma.equipmentItem.count({ where });
+    return NextResponse.json({ items: [], total, truncated: false });
+  }
+
+  const [items, total] = await Promise.all([
+    prisma.equipmentItem.findMany({
+      where,
+      orderBy: { code: "asc" },
+      take: limit,
+      include: {
+        rentalOrder: { select: { orderNumber: true, eventName: true } },
+      },
+    }),
+    prisma.equipmentItem.count({ where }),
+  ]);
+
+  return NextResponse.json({
+    items,
+    total,
+    truncated: total > items.length,
+  });
 }
 
 export async function POST(request: Request) {
@@ -69,19 +89,13 @@ export async function POST(request: Request) {
     }
   }
 
-  const codes = await getNextCodes(type, count);
-  const created = await prisma.$transaction(
-    codes.map((code) =>
-      prisma.equipmentItem.create({
-        data: {
-          code,
-          type,
-          tableSize: type === "TABLE" ? tableSize : null,
-          hasCover: type === "CHAIR" ? hasCover : false,
-        },
-      }),
-    ),
-  );
+  const created = await createEquipmentItems(type, count, {
+    tableSize: type === "TABLE" ? tableSize : null,
+    hasCover,
+  });
 
-  return NextResponse.json({ created, count: created.length });
+  return NextResponse.json({
+    created: created.codes.map((code) => ({ code })),
+    count: created.count,
+  });
 }

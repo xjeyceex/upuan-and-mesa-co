@@ -21,6 +21,12 @@ export function AppNav() {
     router.refresh();
   }
 
+  function go(href: string) {
+    if (pathname !== href && !(href !== "/" && pathname.startsWith(href))) {
+      router.push(href);
+    }
+  }
+
   return (
     <>
       <header className="border-b border-border bg-surface">
@@ -50,6 +56,7 @@ export function AppNav() {
               <Link
                 key={link.href}
                 href={link.href}
+                prefetch={false}
                 className={`rounded-lg px-4 py-2.5 text-sm font-semibold ${
                   active
                     ? "bg-accent-soft text-accent"
@@ -64,7 +71,7 @@ export function AppNav() {
       </header>
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-surface sm:hidden"
+        className="fixed bottom-0 left-0 right-0 z-[100] border-t border-border bg-surface sm:hidden"
         aria-label="Main menu"
       >
         <div className="grid grid-cols-4">
@@ -74,15 +81,16 @@ export function AppNav() {
                 ? pathname === "/"
                 : pathname.startsWith(link.href);
             return (
-              <Link
+              <button
                 key={link.href}
-                href={link.href}
+                type="button"
+                onClick={() => go(link.href)}
                 className={`flex flex-col items-center py-3.5 text-xs font-semibold ${
                   active ? "text-accent" : "text-muted"
                 }`}
               >
                 <span className="text-base">{link.short}</span>
-              </Link>
+              </button>
             );
           })}
         </div>

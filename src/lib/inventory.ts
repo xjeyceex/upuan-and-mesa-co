@@ -1,4 +1,4 @@
-import type { ItemType, TableSize } from "@/generated/prisma/client";
+import type { ItemType, Prisma, TableSize } from "@/generated/prisma/client";
 import { prisma } from "./db";
 import {
   STOCK_GROUP_DEFINITIONS,
@@ -13,43 +13,41 @@ const CODE_PREFIX: Record<ItemType, string> = {
   TABLE: "TABLE",
 };
 
+function parseCodeNumber(prefix: string, code: string): number {
+  const match = code.match(new RegExp(`^${prefix}-(\\d+)$`));
+  return match ? parseInt(match[1], 10) : 0;
+}
+
 export async function getNextCode(type: ItemType): Promise<string> {
-  const prefix = CODE_PREFIX[type];
-  const items = await prisma.equipmentItem.findMany({
-    where: { type },
-    select: { code: true },
-    orderBy: { code: "desc" },
-  });
-
-  let max = 0;
-  for (const item of items) {
-    const match = item.code.match(new RegExp(`^${prefix}-(\\d+)$`));
-    if (match) {
-      max = Math.max(max, parseInt(match[1], 10));
-    }
-  }
-
-  return `${prefix}-${String(max + 1).padStart(4, "0")}`;
+  const codes = await getNextCodes(type, 1);
+  return codes[0]!;
 }
 
 export async function getNextCodes(type: ItemType, count: number): Promise<string[]> {
   const prefix = CODE_PREFIX[type];
-  const items = await prisma.equipmentItem.findMany({
-    where: { type },
+  const last = await prisma.equipmentItem.findFirst({
+    where: { type, code: { startsWith: `${prefix}-` } },
+    orderBy: { code: "desc" },
     select: { code: true },
   });
 
-  let max = 0;
-  for (const item of items) {
-    const match = item.code.match(new RegExp(`^${prefix}-(\\d+)$`));
-    if (match) {
-      max = Math.max(max, parseInt(match[1], 10));
-    }
-  }
+  const max = last ? parseCodeNumber(prefix, last.code) : 0;
 
   return Array.from({ length: count }, (_, i) =>
     `${prefix}-${String(max + 1 + i).padStart(4, "0")}`,
   );
+}
+
+function summaryKey(
+  type: ItemType,
+  tableSize: TableSize | null,
+  hasCover: boolean,
+): string {
+  return [
+    type,
+    type === "TABLE" ? tableSize ?? "" : "",
+    type === "CHAIR" ? (hasCover ? "1" : "0") : "",
+  ].join("|");
 }
 
 export type StockGroupSummary = {
@@ -66,47 +64,101 @@ export type StockGroupSummary = {
 };
 
 export async function getStockGroupSummaries(): Promise<StockGroupSummary[]> {
-  return Promise.all(
-    STOCK_GROUP_DEFINITIONS.map(async (group) => {
-      const base = stockGroupWhere(group);
-      const [total, inWarehouse, out, locked, removable] = await Promise.all([
-        prisma.equipmentItem.count({ where: base }),
-        prisma.equipmentItem.count({
-          where: { ...base, status: "IN_WAREHOUSE" },
-        }),
-        prisma.equipmentItem.count({ where: { ...base, status: "OUT" } }),
-        prisma.equipmentItem.count({
-          where: {
-            ...base,
-            OR: [
-              { status: { in: ["DAMAGED", "MISSING"] } },
-              { rentalOrderId: { not: null } },
-            ],
-          },
-        }),
-        prisma.equipmentItem.count({
-          where: {
-            ...base,
-            status: "IN_WAREHOUSE",
-            rentalOrderId: null,
-          },
-        }),
-      ]);
-
-      return {
-        key: stockGroupKeyString(group),
-        itemType: group.itemType,
-        tableSize: group.tableSize,
-        hasCover: group.hasCover,
-        label: stockGroupLabel(group),
-        total,
-        inWarehouse,
-        out,
-        locked: locked,
-        removable,
-      };
+  const [byStatus, removableGroups, lockedGroups] = await Promise.all([
+    prisma.equipmentItem.groupBy({
+      by: ["type", "tableSize", "hasCover", "status"],
+      where: { status: { not: "RETIRED" } },
+      _count: { _all: true },
     }),
-  );
+    prisma.equipmentItem.groupBy({
+      by: ["type", "tableSize", "hasCover"],
+      where: {
+        status: "IN_WAREHOUSE",
+        rentalOrderId: null,
+      },
+      _count: { _all: true },
+    }),
+    prisma.equipmentItem.groupBy({
+      by: ["type", "tableSize", "hasCover"],
+      where: {
+        status: { not: "RETIRED" },
+        OR: [
+          { status: { in: ["DAMAGED", "MISSING"] } },
+          { rentalOrderId: { not: null } },
+        ],
+      },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const buckets = new Map<
+    string,
+    { total: number; inWarehouse: number; out: number; removable: number; locked: number }
+  >();
+
+  for (const row of byStatus) {
+    const key = summaryKey(row.type, row.tableSize, row.hasCover);
+    const bucket = buckets.get(key) ?? {
+      total: 0,
+      inWarehouse: 0,
+      out: 0,
+      removable: 0,
+      locked: 0,
+    };
+    const n = row._count._all;
+    bucket.total += n;
+    if (row.status === "IN_WAREHOUSE") bucket.inWarehouse += n;
+    if (row.status === "OUT") bucket.out += n;
+    buckets.set(key, bucket);
+  }
+
+  for (const row of removableGroups) {
+    const key = summaryKey(row.type, row.tableSize, row.hasCover);
+    const bucket = buckets.get(key);
+    if (bucket) bucket.removable = row._count._all;
+  }
+
+  for (const row of lockedGroups) {
+    const key = summaryKey(row.type, row.tableSize, row.hasCover);
+    const bucket = buckets.get(key);
+    if (bucket) bucket.locked = row._count._all;
+  }
+
+  return STOCK_GROUP_DEFINITIONS.map((group) => {
+    const key = summaryKey(group.itemType, group.tableSize, group.hasCover);
+    const bucket = buckets.get(key) ?? {
+      total: 0,
+      inWarehouse: 0,
+      out: 0,
+      removable: 0,
+      locked: 0,
+    };
+    return {
+      key: stockGroupKeyString(group),
+      itemType: group.itemType,
+      tableSize: group.tableSize,
+      hasCover: group.hasCover,
+      label: stockGroupLabel(group),
+      ...bucket,
+    };
+  });
+}
+
+export async function createEquipmentItems(
+  type: ItemType,
+  count: number,
+  options: { tableSize?: TableSize | null; hasCover?: boolean },
+): Promise<{ count: number; codes: string[] }> {
+  const codes = await getNextCodes(type, count);
+  const data: Prisma.EquipmentItemCreateManyInput[] = codes.map((code) => ({
+    code,
+    type,
+    tableSize: type === "TABLE" ? options.tableSize ?? null : null,
+    hasCover: type === "CHAIR" ? Boolean(options.hasCover) : false,
+  }));
+
+  await prisma.equipmentItem.createMany({ data });
+  return { count: codes.length, codes };
 }
 
 export async function adjustStockGroup(
@@ -126,19 +178,10 @@ export async function adjustStockGroup(
 
   if (targetCount > current) {
     const toAdd = targetCount - current;
-    const codes = await getNextCodes(group.itemType, toAdd);
-    await prisma.$transaction(
-      codes.map((code) =>
-        prisma.equipmentItem.create({
-          data: {
-            code,
-            type: group.itemType,
-            tableSize: group.itemType === "TABLE" ? group.tableSize : null,
-            hasCover: group.itemType === "CHAIR" ? group.hasCover : false,
-          },
-        }),
-      ),
-    );
+    await createEquipmentItems(group.itemType, toAdd, {
+      tableSize: group.tableSize,
+      hasCover: group.hasCover,
+    });
     return { total: targetCount, added: toAdd, removed: 0 };
   }
 

@@ -65,8 +65,8 @@ export function PwaRegister() {
   if (installed || dismissed || !installEvent) return null;
 
   return (
-    <div className="fixed bottom-[3.75rem] left-0 right-0 z-50 px-3 pb-1 sm:bottom-4 sm:px-4">
-      <div className="mx-auto flex max-w-3xl items-center gap-2 rounded-lg border border-accent-border bg-surface p-2.5 shadow-lg sm:gap-3 sm:p-3">
+    <div className="pointer-events-none fixed bottom-20 left-0 right-0 z-40 px-3 pb-1 sm:bottom-4 sm:px-4">
+      <div className="pointer-events-auto mx-auto flex max-w-3xl items-center gap-2 rounded-lg border border-accent-border bg-surface p-2.5 shadow-lg sm:gap-3 sm:p-3">
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-foreground">Install on this phone</p>
           <p className="text-sm text-muted">
