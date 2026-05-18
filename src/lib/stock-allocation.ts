@@ -248,6 +248,29 @@ export async function getOrderStockSummary(orderId: string, lines: OrderLine[]) 
   };
 }
 
+export async function replaceOrderLines(
+  orderId: string,
+  status: string,
+  createLines: Prisma.OrderLineCreateManyInput[],
+) {
+  const reallocate = status === "OUT";
+
+  if (reallocate) {
+    await releaseOrderItems(orderId);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.orderLine.deleteMany({ where: { orderId } });
+    if (createLines.length > 0) {
+      await tx.orderLine.createMany({ data: createLines });
+    }
+  });
+
+  if (reallocate) {
+    await allocateOrderItems(orderId);
+  }
+}
+
 export async function applyOrderStatusStock(
   orderId: string,
   previousStatus: string,

@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { OrderStatusBadge } from "@/components/OrderStatusBadge";
 import { PaymentSummary } from "@/components/PaymentSummary";
 import { WholeNumberField } from "@/components/FormField";
 import { BackLink } from "@/components/ux/BackLink";
+import { PrimaryLink } from "@/components/ux/PrimaryButton";
 import { HelpTip } from "@/components/ux/HelpTip";
 import { LinePriceHint, OrderPriceReference } from "@/components/RentalPriceHint";
 import { usePricingConfig } from "@/hooks/usePricingConfig";
@@ -48,6 +48,7 @@ type Order = {
 
 export default function OrderDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = String(params.id);
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,6 +61,7 @@ export default function OrderDetailPage() {
     offerTotal?: string;
     amountPaid?: string;
   }>({});
+  const [deleting, setDeleting] = useState(false);
   const { config, loading: pricesLoading } = usePricingConfig();
 
   const load = useCallback(async () => {
@@ -134,6 +136,32 @@ export default function OrderDetailPage() {
     setSavingPayment(false);
     if (!ok) return;
     setMoneyErrors({});
+  }
+
+  async function deleteOrder() {
+    if (
+      !window.confirm(
+        `Delete rental ${order?.orderNumber ?? ""}? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+
+    setDeleting(true);
+    setStatusError("");
+    const res = await fetch(`/api/orders/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    setDeleting(false);
+
+    if (!res.ok) {
+      const data = await res.json();
+      setStatusError(data.error ?? "Could not delete rental");
+      return;
+    }
+
+    router.push("/orders");
+    router.refresh();
   }
 
   async function settleBalance() {
@@ -221,6 +249,20 @@ export default function OrderDetailPage() {
           </button>
         </div>
       )}
+
+      <div className="flex flex-wrap gap-2">
+        <PrimaryLink href={`/orders/${order.orderNumber}/edit`} variant="secondary">
+          Edit rental
+        </PrimaryLink>
+        <button
+          type="button"
+          onClick={deleteOrder}
+          disabled={deleting}
+          className="rounded-xl border-2 border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+        >
+          {deleting ? "Deleting…" : "Delete rental"}
+        </button>
+      </div>
 
       <div className="card">
         <div className="flex items-start justify-between gap-2">

@@ -7,7 +7,13 @@ import {
   allocateOrderItems,
   getOrderStockSummary,
   releaseOrderItems,
+  replaceOrderLines,
 } from "@/lib/stock-allocation";
+import {
+  type LineInput,
+  lineInputToCreateData,
+  validateOrderLines,
+} from "@/lib/order-lines";
 import { parsePesoFromUnknown } from "@/lib/validate-numbers";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -90,7 +96,27 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
+  let lineUpdates: LineInput[] | undefined;
+  if (body.lines !== undefined) {
+    const parsed = validateOrderLines(body.lines);
+    if (typeof parsed === "string") {
+      return NextResponse.json({ error: parsed }, { status: 400 });
+    }
+    lineUpdates = parsed;
+  }
+
   try {
+    if (lineUpdates) {
+      await replaceOrderLines(
+        existing.id,
+        existing.status,
+        lineInputToCreateData(lineUpdates).map((line) => ({
+          ...line,
+          orderId: existing.id,
+        })),
+      );
+    }
+
     if (syncStock) {
       if (existing.status === "OUT") {
         await allocateOrderItems(existing.id);
@@ -134,4 +160,21 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
     throw err;
   }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { id } = await context.params;
+
+  const existing = await prisma.rentalOrder.findFirst({
+    where: { OR: [{ id }, { orderNumber: id.toUpperCase() }] },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  await releaseOrderItems(existing.id);
+  await prisma.rentalOrder.delete({ where: { id: existing.id } });
+
+  return NextResponse.json({ ok: true });
 }
