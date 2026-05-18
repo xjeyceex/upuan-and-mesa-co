@@ -74,7 +74,15 @@ export default function AddItemsPage() {
     <div className="page-stack">
       <BackLink href="/inventory">Back to stock</BackLink>
 
-      <PageHeader title="Add stock" description="How many chairs or tables to register." />
+      <PageHeader title="Add stock" description="Add extra items, or set exact counts on stock page." />
+
+      <p className="text-sm text-muted">
+        To set totals like 30 or 40 chairs, use{" "}
+        <Link href="/inventory#adjust-stock" className="font-semibold text-accent hover:underline">
+          adjust counts on My stock
+        </Link>
+        .
+      </p>
 
       <form onSubmit={onSubmit} className="card space-y-3">
         <fieldset className="space-y-2">
@@ -85,8 +93,8 @@ export default function AddItemsPage() {
                 key={t}
                 className={`flex-1 cursor-pointer rounded-lg border px-2 py-2 text-center text-sm font-semibold ${
                   type === t
-                    ? "border-amber-500 bg-amber-50 text-amber-900"
-                    : "border-stone-200 text-stone-600"
+                    ? "border-amber-500 bg-accent-soft text-accent"
+                    : "border-border text-muted"
                 }`}
               >
                 <input
@@ -113,8 +121,8 @@ export default function AddItemsPage() {
                     key={key}
                     className={`cursor-pointer rounded-lg border px-3 py-2.5 text-center text-sm font-medium ${
                       tableSize === key
-                        ? "border-amber-500 bg-amber-50 text-amber-900"
-                        : "border-stone-200 text-stone-600"
+                        ? "border-amber-500 bg-accent-soft text-accent"
+                        : "border-border text-muted"
                     }`}
                   >
                     <input
@@ -145,19 +153,19 @@ export default function AddItemsPage() {
         />
 
         {type === "CHAIR" && (
-          <label className="flex items-center gap-3 rounded-lg border border-stone-200 p-3 text-sm">
+          <label className="flex items-center gap-3 rounded-lg border border-border p-3 text-sm">
             <input
               type="checkbox"
               checked={hasCover}
               onChange={(e) => setHasCover(e.target.checked)}
-              className="h-4 w-4 rounded border-stone-300 text-amber-600"
+              className="h-4 w-4 rounded border-border text-amber-600"
             />
-            <span className="font-medium text-stone-800">Has cover (+₱10/day)</span>
+            <span className="font-medium text-foreground">Has cover (+₱10/day)</span>
           </label>
         )}
 
         {error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+          <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-red-400">{error}</p>
         )}
 
         <button

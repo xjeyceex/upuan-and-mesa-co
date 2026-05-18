@@ -2,17 +2,17 @@ import { STATUS_LABELS } from "@/lib/constants";
 import type { ItemStatus } from "@/generated/prisma/client";
 
 const styles: Record<ItemStatus, string> = {
-  IN_WAREHOUSE: "bg-emerald-100 text-emerald-800",
-  OUT: "bg-sky-100 text-sky-800",
-  DAMAGED: "bg-orange-100 text-orange-800",
-  MISSING: "bg-red-100 text-red-800",
-  RETIRED: "bg-stone-200 text-stone-600",
+  IN_WAREHOUSE: "bg-emerald-500/20 text-emerald-300",
+  OUT: "bg-sky-500/20 text-sky-300",
+  DAMAGED: "bg-orange-500/20 text-orange-300",
+  MISSING: "bg-danger-soft0/20 text-red-300",
+  RETIRED: "bg-surface-elevated text-muted",
 };
 
 export function StatusBadge({ status }: { status: ItemStatus }) {
   return (
     <span
-      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status]}`}
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${styles[status]}`}
     >
       {STATUS_LABELS[status]}
     </span>

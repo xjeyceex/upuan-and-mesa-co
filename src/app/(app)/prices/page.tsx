@@ -125,7 +125,7 @@ export default function PricesPage() {
     setMessage("Prices saved. New rentals will use these amounts.");
   }
 
-  if (loading) return <p className="text-stone-500">Loading prices…</p>;
+  if (loading) return <p className="text-muted">Loading prices…</p>;
 
   return (
     <div className="page-stack">
@@ -167,7 +167,7 @@ export default function PricesPage() {
               error={fieldErrors.table10ftRentalPerDay}
             />
           </div>
-          <p className="text-sm text-stone-600">
+          <p className="text-sm text-muted">
             Chair with cover = chair + cover add-on (e.g. ₱{form.chairRentalPerDay || "0"} + ₱
             {form.coverAddonPerDay || "0"})
           </p>
@@ -205,7 +205,7 @@ export default function PricesPage() {
         </section>
 
         {error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+          <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-red-400">{error}</p>
         )}
         {message && (
           <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">

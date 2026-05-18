@@ -58,11 +58,11 @@ export default function OrdersPage() {
       <HelpTip>Tap a rental to update payment or mark delivered / returned.</HelpTip>
 
       <label className="block max-w-xs">
-        <span className="mb-0.5 block text-xs font-semibold text-stone-700">Show only</span>
+        <span className="mb-0.5 block text-xs font-semibold text-subtle">Show only</span>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="field-input w-full rounded-lg border border-stone-300 px-2.5 py-2 text-sm"
+          className="field-input w-full rounded-lg border border-border px-2.5 py-2 text-sm"
         >
           <option value="">All rentals</option>
           {(Object.keys(ORDER_STATUS_LABELS) as OrderStatus[]).map((s) => (
@@ -74,11 +74,11 @@ export default function OrdersPage() {
       </label>
 
       {loading ? (
-        <p className="text-base text-stone-500">Loading your rentals…</p>
+        <p className="text-base text-muted">Loading your rentals…</p>
       ) : orders.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-stone-300 p-4 text-center text-sm text-stone-600">
+        <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted">
           No rentals yet.{" "}
-          <Link href="/orders/new" className="font-semibold text-amber-800 hover:underline">
+          <Link href="/orders/new" className="font-semibold text-accent hover:underline">
             Create your first rental
           </Link>
         </p>
@@ -89,20 +89,20 @@ export default function OrdersPage() {
               <Link href={`/orders/${order.orderNumber}`} className="list-row">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-mono text-sm font-bold text-stone-900">
+                    <p className="font-mono text-sm font-bold text-foreground">
                       {order.orderNumber}
                     </p>
-                    <p className="mt-0.5 truncate text-sm font-medium text-stone-800">
+                    <p className="mt-0.5 truncate text-sm font-medium text-foreground">
                       {order.eventName || order.customerName || "No name yet"}
                     </p>
-                    <p className="mt-1 text-sm text-stone-500">
+                    <p className="mt-1 text-sm text-muted">
                       {orderLinesSummary(order.lines)}
                     </p>
                     {order.offerTotal > 0 && (
-                      <p className="mt-1 text-sm font-medium text-stone-700">
+                      <p className="mt-1 text-sm font-medium text-subtle">
                         Price {formatPeso(order.offerTotal)} · Paid {formatPeso(order.amountPaid)}
                         {orderBalance(order.offerTotal, order.amountPaid) > 0 && (
-                          <span className="text-red-600">
+                          <span className="text-red-400">
                             {" "}
                             · Still owes{" "}
                             {formatPeso(orderBalance(order.offerTotal, order.amountPaid))}
@@ -111,7 +111,7 @@ export default function OrdersPage() {
                       </p>
                     )}
                     {order.eventDate && (
-                      <p className="mt-1 text-xs text-stone-400">
+                      <p className="mt-1 text-xs text-muted/80">
                         {new Date(order.eventDate).toLocaleDateString()}
                       </p>
                     )}

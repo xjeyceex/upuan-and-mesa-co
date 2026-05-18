@@ -191,10 +191,10 @@ export default function OrderDetailPage() {
     setPaidInput(String(offer.value));
   }
 
-  if (loading || pricesLoading || !config) return <p className="text-stone-500">Loading…</p>;
+  if (loading || pricesLoading || !config) return <p className="text-muted">Loading…</p>;
   if (!order) {
     return (
-      <p className="text-base text-stone-600">
+      <p className="text-base text-muted">
         Rental not found. <BackLink href="/orders">Back to rentals</BackLink>
       </p>
     );
@@ -231,19 +231,19 @@ export default function OrderDetailPage() {
       </HelpTip>
 
       {statusError && (
-        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{statusError}</p>
+        <p className="rounded-xl bg-danger-soft px-4 py-3 text-sm text-red-400">{statusError}</p>
       )}
 
       {stockOutOfSync && (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
-          <p className="text-sm font-medium text-amber-900">
+        <div className="rounded-xl border border-accent-border bg-accent-soft px-4 py-3">
+          <p className="text-sm font-medium text-accent">
             Stock is not fully linked to this rental yet.
           </p>
           <button
             type="button"
             onClick={syncStock}
             disabled={syncing}
-            className="mt-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
+            className="mt-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
           >
             {syncing ? "Linking…" : "Link stock now"}
           </button>
@@ -258,7 +258,7 @@ export default function OrderDetailPage() {
           type="button"
           onClick={deleteOrder}
           disabled={deleting}
-          className="rounded-xl border-2 border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+          className="rounded-xl border-2 border-red-200 bg-surface px-4 py-2.5 text-sm font-semibold text-red-400 hover:bg-danger-soft disabled:opacity-50"
         >
           {deleting ? "Deleting…" : "Delete rental"}
         </button>
@@ -268,14 +268,14 @@ export default function OrderDetailPage() {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h1 className="font-mono text-lg font-bold sm:text-xl">{order.orderNumber}</h1>
-            <p className="mt-0.5 truncate text-base font-medium text-stone-800">
+            <p className="mt-0.5 truncate text-base font-medium text-foreground">
               {order.eventName || order.customerName || "Unnamed event"}
             </p>
             {order.customerName && order.eventName && (
-              <p className="text-sm text-stone-500">{order.customerName}</p>
+              <p className="text-sm text-muted">{order.customerName}</p>
             )}
             {order.eventDate && (
-              <p className="mt-1 text-sm text-stone-500">
+              <p className="mt-1 text-sm text-muted">
                 {new Date(order.eventDate).toLocaleDateString(undefined, {
                   weekday: "short",
                   year: "numeric",
@@ -314,7 +314,7 @@ export default function OrderDetailPage() {
               type="button"
               onClick={() => updateStatus(s)}
               disabled={order.status === s}
-              className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-800 disabled:opacity-50"
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground disabled:opacity-50"
             >
               {ORDER_STATUS_LABELS[s]}
             </button>
@@ -356,7 +356,7 @@ export default function OrderDetailPage() {
             type="button"
             onClick={savePayment}
             disabled={savingPayment}
-            className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
           >
             {savingPayment ? "Saving…" : "Save money changes"}
           </button>
@@ -379,15 +379,15 @@ export default function OrderDetailPage() {
             return (
               <li
                 key={line.id}
-                className="rounded-lg border border-stone-100 bg-stone-50 px-4 py-3"
+                className="rounded-lg border border-border/60 bg-surface-elevated px-4 py-3"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <p className="font-medium text-stone-900">{formatOrderLine(line)}</p>
+                    <p className="font-medium text-foreground">{formatOrderLine(line)}</p>
                     <LinePriceHint line={line} config={config} />
                   </div>
                   <p
-                    className={`text-sm ${short || partialOut ? "font-medium text-red-600" : "text-stone-500"}`}
+                    className={`text-sm ${short || partialOut ? "font-medium text-red-400" : "text-muted"}`}
                   >
                     {order.status === "OUT" || order.status === "RETURNED"
                       ? partialOut
@@ -399,7 +399,7 @@ export default function OrderDetailPage() {
                   </p>
                 </div>
                 {line.allocatedCodes && line.allocatedCodes.length > 0 && (
-                  <p className="mt-2 font-mono text-xs text-stone-500">
+                  <p className="mt-2 font-mono text-xs text-muted">
                     {line.allocatedCodes.join(", ")}
                   </p>
                 )}
@@ -410,8 +410,8 @@ export default function OrderDetailPage() {
       </section>
 
       {order.notes && (
-        <section className="rounded-xl border border-stone-200 bg-white p-4 text-sm text-stone-600">
-          <span className="font-medium text-stone-800">Notes: </span>
+        <section className="rounded-xl border border-border bg-surface p-4 text-sm text-muted">
+          <span className="font-medium text-foreground">Notes: </span>
           {order.notes}
         </section>
       )}

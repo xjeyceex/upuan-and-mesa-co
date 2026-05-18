@@ -61,37 +61,12 @@ export default async function HomePage() {
         </HelpTip>
       ) : null}
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-2">
-        <QuickAction
-          href="/orders/new"
-          title="New rental"
-          description="Someone booked chairs or tables? Tap here to save the order and payment."
-          accent="amber"
-        />
-        <QuickAction
-          href="/earnings"
-          title="Money collected"
-          description="See how much customers have paid you and what they still owe."
-          accent="emerald"
-        />
-        <QuickAction
-          href="/inventory"
-          title="My stock"
-          description="See all your chairs and tables. Mark items when they leave or come back."
-          accent="sky"
-        />
-        <QuickAction
-          href="/add"
-          title="Add chairs / tables"
-          description="First time setup: add how many items you have in your warehouse."
-          accent="stone"
-        />
-        <QuickAction
-          href="/prices"
-          title="Default prices"
-          description="Change rental rates (e.g. chair ₱130) and replacement costs."
-          accent="stone"
-        />
+      <section className="grid grid-cols-2 gap-2">
+        <QuickAction href="/orders/new" title="New rental" accent="amber" />
+        <QuickAction href="/earnings" title="Money collected" accent="emerald" />
+        <QuickAction href="/inventory" title="My stock" accent="sky" />
+        <QuickAction href="/add" title="Add chairs / tables" accent="stone" />
+        <QuickAction href="/prices" title="Default prices" accent="stone" className="col-span-2" />
       </section>
 
       <ReplacementPanel
@@ -107,7 +82,7 @@ export default async function HomePage() {
         <p className="stat-value mt-1 text-emerald-700">
           {formatPeso(earnings.totalCollected)}
         </p>
-        <p className="mt-2 text-sm text-stone-600">
+        <p className="mt-2 text-sm text-muted">
           {earnings.outstanding > 0
             ? `${formatPeso(earnings.outstanding)} still waiting to be paid by customers.`
             : "Great — no unpaid balances on your active rentals."}
@@ -122,14 +97,14 @@ export default async function HomePage() {
 
       <section className="grid grid-cols-2 gap-3">
         <div className="card">
-          <p className="text-xs text-stone-500">In storage</p>
+          <p className="text-xs text-muted">In storage</p>
           <p className="stat-value mt-1 text-emerald-700">{inWarehouse}</p>
-          <p className="mt-1 text-xs text-stone-500">In warehouse</p>
+          <p className="mt-1 text-xs text-muted">In warehouse</p>
         </div>
         <div className="card">
-          <p className="text-xs text-stone-500">At events now</p>
+          <p className="text-xs text-muted">At events now</p>
           <p className="stat-value mt-1 text-sky-700">{out}</p>
-          <p className="mt-1 text-xs text-stone-500">
+          <p className="mt-1 text-xs text-muted">
             {bookedOnDeliveries > 0
               ? `${bookedOnDeliveries} on delivered rentals`
               : "Linked in stock"}
@@ -153,17 +128,17 @@ export default async function HomePage() {
               <li key={order.id}>
                 <Link
                   href={`/orders/${order.orderNumber}`}
-                  className="block rounded-lg border border-stone-100 px-4 py-3 hover:bg-stone-50"
+                  className="block rounded-lg border border-border/60 px-4 py-3 hover:bg-surface-elevated"
                 >
-                  <p className="font-semibold text-stone-900">
+                  <p className="font-semibold text-foreground">
                     {order.eventName || order.customerName || "Rental"}
                   </p>
-                  <p className="text-sm text-stone-600">{orderLinesSummary(order.lines)}</p>
+                  <p className="text-sm text-muted">{orderLinesSummary(order.lines)}</p>
                   {order.offerTotal > 0 && (
-                    <p className="mt-1 text-sm text-stone-500">
+                    <p className="mt-1 text-sm text-muted">
                       Price {formatPeso(order.offerTotal)} · Paid {formatPeso(order.amountPaid)}
                       {orderBalance(order.offerTotal, order.amountPaid) > 0 && (
-                        <span className="font-medium text-red-600">
+                        <span className="font-medium text-red-400">
                           {" "}
                           · Still owes {formatPeso(orderBalance(order.offerTotal, order.amountPaid))}
                         </span>
@@ -174,7 +149,7 @@ export default async function HomePage() {
               </li>
             ))}
           </ul>
-          <Link href="/orders" className="mt-2 inline-block text-sm font-semibold text-amber-800">
+          <Link href="/orders" className="mt-2 inline-block text-sm font-semibold text-accent">
             See all rentals →
           </Link>
         </section>

@@ -121,10 +121,10 @@ export default function ItemDetailPage() {
     load();
   }
 
-  if (loading || pricesLoading || !config) return <p className="text-stone-500">Loading…</p>;
+  if (loading || pricesLoading || !config) return <p className="text-muted">Loading…</p>;
   if (!item) {
     return (
-      <p className="text-base text-stone-600">
+      <p className="text-base text-muted">
         Item not found. <BackLink href="/inventory">Back to my stock</BackLink>
       </p>
     );
@@ -163,7 +163,7 @@ export default function ItemDetailPage() {
       )}
 
       {isProblem && item.replacementSettled && (
-        <p className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-600">
+        <p className="rounded-xl border border-border bg-surface-elevated px-4 py-3 text-sm text-muted">
           Settled — no longer counted as money owed. You can mark as{" "}
           <strong>Not in use</strong> if this piece is gone for good.
         </p>
@@ -173,11 +173,11 @@ export default function ItemDetailPage() {
         <div className="flex items-start justify-between gap-2">
           <div>
             <h1 className="font-mono text-lg font-bold sm:text-xl">{item.code}</h1>
-            <p className="mt-1 text-stone-600">{formatItemDescription(item, config)}</p>
+            <p className="mt-1 text-muted">{formatItemDescription(item, config)}</p>
             {item.rentalOrder && !item.replacementDue && (
               <Link
                 href={`/orders/${item.rentalOrder.orderNumber}`}
-                className="mt-2 inline-block text-sm font-semibold text-amber-800 hover:underline"
+                className="mt-2 inline-block text-sm font-semibold text-accent hover:underline"
               >
                 On rental {item.rentalOrder.orderNumber}
                 {item.rentalOrder.eventName ? ` · ${item.rentalOrder.eventName}` : ""}
@@ -212,7 +212,7 @@ export default function ItemDetailPage() {
           <button
             type="button"
             onClick={toggleCover}
-            className="mt-4 text-sm font-medium text-amber-700 hover:underline"
+            className="mt-4 text-sm font-medium text-accent hover:underline"
           >
             Switch to{" "}
             {item.hasCover
@@ -222,8 +222,8 @@ export default function ItemDetailPage() {
         )}
 
         <div className="mt-3">
-          <p className="text-sm font-semibold text-stone-800">Something wrong?</p>
-          <p className="mt-1 text-sm text-stone-500">
+          <p className="text-sm font-semibold text-foreground">Something wrong?</p>
+          <p className="mt-1 text-sm text-muted">
             Chair {formatPeso(config.chairReplacement)} · 4 ft{" "}
             {formatPeso(config.table4ftReplacement)} · 6 ft{" "}
             {formatPeso(config.table6ftReplacement)} to replace or pay ·{" "}
@@ -241,7 +241,7 @@ export default function ItemDetailPage() {
                 className={`rounded-lg px-3 py-2 text-sm font-medium ${
                   item.status === s
                     ? "bg-orange-100 text-orange-900 ring-1 ring-orange-400"
-                    : "border border-stone-300 text-stone-700 hover:bg-stone-50"
+                    : "border border-border text-subtle hover:bg-surface-elevated"
                 }`}
               >
                 {problemStatusButtonLabel(config, s, item)}
@@ -251,7 +251,7 @@ export default function ItemDetailPage() {
               type="button"
               onClick={() => updateStatus("RETIRED")}
               disabled={item.status === "RETIRED"}
-              className="rounded-lg border border-stone-300 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+              className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-subtle hover:bg-surface-elevated disabled:opacity-50"
             >
               {STATUS_LABELS.RETIRED}
             </button>
@@ -259,25 +259,25 @@ export default function ItemDetailPage() {
         </div>
 
         {item.type === "TABLE" && item.tableSize != null && (
-          <p className="mt-4 text-sm text-stone-500">
+          <p className="mt-4 text-sm text-muted">
             Size: {TABLE_SIZE_LABELS[item.tableSize]}
           </p>
         )}
 
         <label className="mt-3 block">
-          <span className="text-sm font-medium text-stone-700">Notes</span>
+          <span className="text-sm font-medium text-subtle">Notes</span>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
             placeholder="e.g. customer will pay next week"
-            className="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
           />
           <button
             type="button"
             onClick={saveNotes}
             disabled={savingNotes}
-            className="mt-2 rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-medium hover:bg-stone-50 disabled:opacity-50"
+            className="mt-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-elevated disabled:opacity-50"
           >
             {savingNotes ? "Saving…" : "Save notes"}
           </button>

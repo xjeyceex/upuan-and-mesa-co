@@ -253,12 +253,12 @@ export default function EditOrderPage() {
   }
 
   if (loadingOrder || pricesLoading || !config) {
-    return <p className="text-stone-500">Loading…</p>;
+    return <p className="text-muted">Loading…</p>;
   }
 
   if (!orderNumber) {
     return (
-      <p className="text-base text-stone-600">
+      <p className="text-base text-muted">
         Rental not found. <BackLink href="/orders">Back to rentals</BackLink>
       </p>
     );
@@ -309,7 +309,7 @@ export default function EditOrderPage() {
             <button
               type="button"
               onClick={() => setLines((p) => [...p, newLine("CHAIR")])}
-              className="text-xs font-semibold text-amber-800 hover:underline sm:text-sm"
+              className="text-xs font-semibold text-accent hover:underline sm:text-sm"
             >
               + Add item
             </button>
@@ -318,17 +318,17 @@ export default function EditOrderPage() {
           {lines.map((line, index) => (
             <div
               key={line.id}
-              className="space-y-3 rounded-lg border border-stone-200 bg-stone-50 p-4"
+              className="space-y-3 rounded-lg border border-border bg-surface-elevated p-4"
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-stone-600">
+                <span className="text-sm font-semibold text-muted">
                   Item {index + 1}
                 </span>
                 {lines.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeLine(line.id)}
-                    className="text-xs text-red-600 hover:underline"
+                    className="text-xs text-red-400 hover:underline"
                   >
                     Remove
                   </button>
@@ -341,8 +341,8 @@ export default function EditOrderPage() {
                   onClick={() => updateLine(line.id, { itemType: "CHAIR" })}
                   className={`rounded-lg py-2 text-sm font-medium ${
                     line.itemType === "CHAIR"
-                      ? "bg-amber-100 text-amber-900 ring-1 ring-amber-400"
-                      : "bg-white text-stone-600"
+                      ? "bg-accent-soft text-accent ring-1 ring-amber-400"
+                      : "bg-surface text-muted"
                   }`}
                 >
                   Chairs
@@ -352,8 +352,8 @@ export default function EditOrderPage() {
                   onClick={() => updateLine(line.id, { itemType: "TABLE" })}
                   className={`rounded-lg py-2 text-sm font-medium ${
                     line.itemType === "TABLE"
-                      ? "bg-amber-100 text-amber-900 ring-1 ring-amber-400"
-                      : "bg-white text-stone-600"
+                      ? "bg-accent-soft text-accent ring-1 ring-amber-400"
+                      : "bg-surface text-muted"
                   }`}
                 >
                   Tables
@@ -369,8 +369,8 @@ export default function EditOrderPage() {
                       onClick={() => updateLine(line.id, { tableSize: size })}
                       className={`rounded-lg px-2 py-2 text-sm font-medium ${
                         line.tableSize === size
-                          ? "bg-amber-100 text-amber-900"
-                          : "bg-white text-stone-600"
+                          ? "bg-accent-soft text-accent"
+                          : "bg-surface text-muted"
                       }`}
                     >
                       {tableSizeButtonLabel(config, size)}
@@ -378,7 +378,7 @@ export default function EditOrderPage() {
                   ))}
                 </div>
               ) : (
-                <label className="flex items-center gap-2 text-sm text-stone-800">
+                <label className="flex items-center gap-2 text-sm text-foreground">
                   <input
                     type="checkbox"
                     checked={line.hasCover}
@@ -421,7 +421,7 @@ export default function EditOrderPage() {
             <button
               type="button"
               onClick={() => setOfferTotal(String(suggestedDaily))}
-              className="text-sm font-semibold text-amber-800 underline hover:text-amber-950"
+              className="text-sm font-semibold text-accent underline hover:text-amber-950"
             >
               Use suggested {formatPeso(suggestedDaily)} as total price
             </button>
@@ -459,7 +459,7 @@ export default function EditOrderPage() {
         />
 
         {error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+          <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-red-400">{error}</p>
         )}
 
         <button type="submit" disabled={loading} className="btn-block">

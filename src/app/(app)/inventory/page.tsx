@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { StockAdjustPanel } from "@/components/StockAdjustPanel";
 import { HelpTip } from "@/components/ux/HelpTip";
 import { PageHeader } from "@/components/ux/PageHeader";
 import { PrimaryLink } from "@/components/ux/PrimaryButton";
@@ -35,6 +36,7 @@ function InventoryContent() {
   const [status, setStatus] = useState<string>(searchParams.get("status") ?? "");
   const [tableSize, setTableSize] = useState<string>("");
   const [q, setQ] = useState("");
+  const [listKey, setListKey] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,7 +54,7 @@ function InventoryContent() {
   useEffect(() => {
     const t = setTimeout(load, 200);
     return () => clearTimeout(t);
-  }, [load]);
+  }, [load, listKey]);
 
   useEffect(() => {
     if (type !== "TABLE") setTableSize("");
@@ -61,26 +63,28 @@ function InventoryContent() {
   return (
     <div className="page-stack">
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <PageHeader title="My stock" description="Tap an item to update location." />
+        <PageHeader title="My stock" description="Set counts below or tap an item for details." />
         <PrimaryLink href="/add">+ Add</PrimaryLink>
       </div>
 
+      <StockAdjustPanel onUpdated={() => setListKey((k) => k + 1)} />
+
       <div className="flex flex-col gap-2">
         <label className="block">
-          <span className="mb-0.5 block text-xs font-semibold text-stone-700">Search</span>
+          <span className="mb-0.5 block text-xs font-semibold text-subtle">Search</span>
           <input
             type="search"
             placeholder="e.g. CHAIR-0001"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            className="field-input w-full rounded-lg border border-stone-300 px-2.5 py-2 text-sm"
+            className="field-input w-full rounded-lg border border-border px-2.5 py-2 text-sm"
           />
         </label>
         <div className="flex flex-wrap gap-2">
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="field-input rounded-lg border border-stone-300 px-2.5 py-2 text-sm"
+            className="field-input rounded-lg border border-border px-2.5 py-2 text-sm"
             aria-label="Type"
           >
             <option value="">Chairs and tables</option>
@@ -91,7 +95,7 @@ function InventoryContent() {
             <select
               value={tableSize}
               onChange={(e) => setTableSize(e.target.value)}
-              className="field-input rounded-lg border border-stone-300 px-2.5 py-2 text-sm"
+              className="field-input rounded-lg border border-border px-2.5 py-2 text-sm"
               aria-label="Table size"
             >
               <option value="">All sizes</option>
@@ -107,7 +111,7 @@ function InventoryContent() {
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="field-input rounded-lg border border-stone-300 px-2.5 py-2 text-sm"
+            className="field-input rounded-lg border border-border px-2.5 py-2 text-sm"
             aria-label="Where is it"
           >
             <option value="">Any location</option>
@@ -121,11 +125,11 @@ function InventoryContent() {
       </div>
 
       {loading ? (
-        <p className="text-base text-stone-500">Loading your stock…</p>
+        <p className="text-base text-muted">Loading your stock…</p>
       ) : items.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-stone-300 p-4 text-center text-sm text-stone-600">
+        <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted">
           Nothing here yet.{" "}
-          <Link href="/add" className="font-semibold text-amber-800 hover:underline">
+          <Link href="/add" className="font-semibold text-accent hover:underline">
             Add your chairs and tables
           </Link>
         </p>
@@ -135,15 +139,15 @@ function InventoryContent() {
             <li key={item.id}>
               <Link
                 href={`/inventory/${item.code}`}
-                className="flex items-center justify-between rounded-xl border border-stone-200 bg-white px-4 py-3 hover:border-amber-300"
+                className="flex items-center justify-between rounded-xl border border-border bg-surface px-4 py-3 hover:border-accent-border"
               >
                 <div className="min-w-0">
-                  <p className="font-mono text-sm font-bold text-stone-900">{item.code}</p>
-                  <p className="text-sm text-stone-500">
+                  <p className="font-mono text-sm font-bold text-foreground">{item.code}</p>
+                  <p className="text-sm text-muted">
                     {config ? formatItemDescription(item, config) : formatItemDescription(item)}
                   </p>
                   {item.rentalOrder && (
-                    <p className="text-xs font-medium text-amber-800">
+                    <p className="text-xs font-medium text-accent">
                       {item.rentalOrder.orderNumber}
                     </p>
                   )}
@@ -169,7 +173,7 @@ function InventoryContent() {
         </ul>
       )}
 
-      <p className="text-sm text-stone-500">
+      <p className="text-sm text-muted">
         Showing {items.length} item{items.length === 1 ? "" : "s"}
       </p>
     </div>
@@ -178,7 +182,7 @@ function InventoryContent() {
 
 export default function InventoryPage() {
   return (
-    <Suspense fallback={<p className="text-stone-500">Loading…</p>}>
+    <Suspense fallback={<p className="text-muted">Loading…</p>}>
       <InventoryContent />
     </Suspense>
   );

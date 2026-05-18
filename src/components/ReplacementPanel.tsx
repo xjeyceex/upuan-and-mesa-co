@@ -44,14 +44,14 @@ export function ReplacementPanel({
           <li key={row.code}>
             <Link
               href={`/inventory/${row.code}`}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-orange-100 bg-white px-3 py-2.5 hover:border-orange-300"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-orange-100 bg-surface px-3 py-2.5 hover:border-orange-300"
             >
               <div>
-                <p className="font-mono text-sm font-bold text-stone-900">{row.code}</p>
-                <p className="text-sm text-stone-600">{row.description}</p>
-                <p className="text-xs text-stone-500">{STATUS_LABELS[row.status]}</p>
+                <p className="font-mono text-sm font-bold text-foreground">{row.code}</p>
+                <p className="text-sm text-muted">{row.description}</p>
+                <p className="text-xs text-muted">{STATUS_LABELS[row.status]}</p>
                 {row.rentalOrderNumber && (
-                  <p className="text-xs text-amber-800">Rental {row.rentalOrderNumber}</p>
+                  <p className="text-xs text-accent">Rental {row.rentalOrderNumber}</p>
                 )}
               </div>
               <p className="text-sm font-semibold text-orange-900">

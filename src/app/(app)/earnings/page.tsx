@@ -62,16 +62,16 @@ export default async function EarningsPage() {
       <section className="grid gap-2 sm:grid-cols-2">
         <div className="card">
           <h2 className="section-title">Finished rentals</h2>
-          <p className="mt-1 text-lg font-semibold text-stone-900 sm:text-xl">
+          <p className="mt-1 text-lg font-semibold text-foreground sm:text-xl">
             {formatPeso(summary.collectedFromReturned)}
           </p>
-          <p className="text-sm text-stone-500">
+          <p className="text-sm text-muted">
             collected of {formatPeso(summary.quotedFromReturned)} total price
           </p>
         </div>
         <div className="card">
           <h2 className="section-title">Quick counts</h2>
-          <ul className="mt-1 space-y-0.5 text-xs text-stone-600 sm:text-sm">
+          <ul className="mt-1 space-y-0.5 text-xs text-muted sm:text-sm">
             <li>{summary.orderCount} active rentals</li>
             <li>{summary.paidInFullCount} fully paid</li>
             <li>{summary.cancelledCount} cancelled (not counted in totals)</li>
@@ -79,37 +79,37 @@ export default async function EarningsPage() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-xl border border-stone-200 bg-white">
-        <div className="border-b border-stone-100 px-3 py-2">
+      <section className="overflow-hidden rounded-xl border border-border bg-surface">
+        <div className="border-b border-border/60 px-3 py-2">
           <h2 className="section-title">Each rental</h2>
         </div>
         {orders.length === 0 ? (
-          <p className="p-4 text-center text-sm text-stone-500">No rentals yet.</p>
+          <p className="p-4 text-center text-sm text-muted">No rentals yet.</p>
         ) : (
-          <ul className="divide-y divide-stone-100">
+          <ul className="divide-y divide-border/60">
             {orders.map((order) => {
               const balance = orderBalance(order.offerTotal, order.amountPaid);
               return (
                 <li key={order.id}>
                   <Link
                     href={`/orders/${order.orderNumber}`}
-                    className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 hover:bg-stone-50"
+                    className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 hover:bg-surface-elevated"
                   >
                     <div>
                       <p className="font-mono text-sm font-semibold">{order.orderNumber}</p>
-                      <p className="text-sm text-stone-600">
+                      <p className="text-sm text-muted">
                         {order.eventName || order.customerName || "—"}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-sm">
-                      <span className="text-stone-500">
+                      <span className="text-muted">
                         Price {formatPeso(order.offerTotal)}
                       </span>
                       <span className="font-medium text-emerald-700">
                         Paid {formatPeso(order.amountPaid)}
                       </span>
                       {balance > 0 && (
-                        <span className="font-medium text-red-600">
+                        <span className="font-medium text-red-400">
                           Owes {formatPeso(balance)}
                         </span>
                       )}
@@ -139,12 +139,12 @@ function StatCard({
     tone === "emerald"
       ? "text-emerald-700"
       : tone === "red"
-        ? "text-red-700"
-        : "text-stone-900";
+        ? "text-red-400"
+        : "text-foreground";
 
   return (
     <div className="card">
-      <p className="text-xs font-medium text-stone-600">{label}</p>
+      <p className="text-xs font-medium text-muted">{label}</p>
       <p className={`mt-0.5 text-base font-semibold sm:text-lg ${valueClass}`}>{value}</p>
     </div>
   );

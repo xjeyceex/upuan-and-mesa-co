@@ -1,7 +1,7 @@
 import type { InputHTMLAttributes, TextareaHTMLAttributes } from "react";
 
 const inputClass =
-  "field-input mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-base text-stone-900 placeholder:text-stone-400 shadow-sm";
+  "field-input mt-1.5 w-full rounded-xl border px-4 py-3 text-base shadow-sm";
 
 type FieldProps = {
   label: string;
@@ -17,24 +17,23 @@ export function TextField({
   ...props
 }: FieldProps & InputHTMLAttributes<HTMLInputElement>) {
   const invalidClass = error
-    ? "border-red-500 ring-1 ring-red-200 focus:border-red-500 focus:ring-red-200"
+    ? "border-red-500 ring-1 ring-red-500/30 focus:border-red-500"
     : "";
 
   return (
     <label className="block">
-      <span className="text-sm font-medium text-stone-700">{label}</span>
-      {hint && <span className="mt-0.5 block text-xs text-stone-500">{hint}</span>}
+      <span className="text-sm font-medium text-subtle">{label}</span>
+      {hint && <span className="mt-1 block text-xs text-muted">{hint}</span>}
       <input
         className={`${inputClass} ${invalidClass} ${className}`}
         aria-invalid={error ? true : undefined}
         {...props}
       />
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-1.5 text-sm text-red-400">{error}</p>}
     </label>
   );
 }
 
-/** Whole numbers only — blocks decimals and negative signs in the UI */
 export function WholeNumberField({
   label,
   hint,
@@ -74,8 +73,8 @@ export function TextAreaField({
 }: FieldProps & TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <label className="block">
-      <span className="text-sm font-medium text-stone-700">{label}</span>
-      {hint && <span className="mt-0.5 block text-xs text-stone-500">{hint}</span>}
+      <span className="text-sm font-medium text-subtle">{label}</span>
+      {hint && <span className="mt-1 block text-xs text-muted">{hint}</span>}
       <textarea className={`${inputClass} ${className}`} {...props} />
     </label>
   );
@@ -90,8 +89,8 @@ export function SelectField({
 }: FieldProps & React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <label className="block">
-      <span className="text-sm font-medium text-stone-700">{label}</span>
-      {hint && <span className="mt-0.5 block text-xs text-stone-500">{hint}</span>}
+      <span className="text-sm font-medium text-subtle">{label}</span>
+      {hint && <span className="mt-1 block text-xs text-muted">{hint}</span>}
       <select className={`${inputClass} ${className}`} {...props}>
         {children}
       </select>

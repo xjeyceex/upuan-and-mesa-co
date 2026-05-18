@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 /** Minimal service worker — required for Android “Install app”. Network-first; no API caching. */
 
-const CACHE = "upuan-mesa-static-v1";
+const CACHE = "upuan-mesa-static-v3";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -31,18 +31,17 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/")) return;
 
+  // Network-first for JS/CSS chunks so deploys and dev HMR never hydrate against stale bundles.
   if (url.pathname.startsWith("/_next/static")) {
     event.respondWith(
-      caches.open(CACHE).then((cache) =>
-        cache.match(request).then(
-          (cached) =>
-            cached ||
-            fetch(request).then((response) => {
-              if (response.ok) cache.put(request, response.clone());
-              return response;
-            }),
-        ),
-      ),
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            caches.open(CACHE).then((cache) => cache.put(request, response.clone()));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request)),
     );
     return;
   }

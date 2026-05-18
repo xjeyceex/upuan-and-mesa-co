@@ -16,7 +16,7 @@ export function LinePriceHint({
 }) {
   const text = formatLineRateText(config, line);
   if (!text) return null;
-  return <p className="text-xs text-amber-900">{text}</p>;
+  return <p className="text-xs text-accent">{text}</p>;
 }
 
 export function OrderPriceReference({
@@ -29,7 +29,7 @@ export function OrderPriceReference({
   const total = orderReferenceTotal(config, lines);
   if (total == null) {
     return (
-      <p className="text-sm text-stone-600">
+      <p className="text-sm text-muted">
         Add rates for all items to see a suggested daily total (set 10 ft price in Default
         prices, or use a special price on the line).
       </p>
@@ -37,10 +37,10 @@ export function OrderPriceReference({
   }
 
   return (
-    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+    <div className="rounded-lg border border-accent-border bg-accent-soft px-4 py-3">
       <p className="text-sm font-semibold text-amber-950">Suggested price (per day)</p>
-      <p className="mt-1 text-xl font-bold text-amber-900">{formatPeso(total)}</p>
-      <p className="mt-1 text-xs text-amber-800">{pricingConfigSummary(config)}</p>
+      <p className="mt-1 text-xl font-bold text-accent">{formatPeso(total)}</p>
+      <p className="mt-1 text-xs text-accent">{pricingConfigSummary(config)}</p>
     </div>
   );
 }

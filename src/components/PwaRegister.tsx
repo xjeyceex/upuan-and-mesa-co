@@ -16,6 +16,14 @@ export function PwaRegister() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 
+    // Dev uses Turbopack HMR; a cache-first SW causes hydration mismatches (stale client JS).
+    if (process.env.NODE_ENV === "development") {
+      void navigator.serviceWorker.getRegistrations().then((regs) => {
+        for (const reg of regs) void reg.unregister();
+      });
+      return;
+    }
+
     navigator.serviceWorker
       .register("/sw.js", { scope: "/" })
       .catch(() => {
@@ -58,10 +66,10 @@ export function PwaRegister() {
 
   return (
     <div className="fixed bottom-[3.75rem] left-0 right-0 z-50 px-3 pb-1 sm:bottom-4 sm:px-4">
-      <div className="mx-auto flex max-w-3xl items-center gap-2 rounded-lg border border-amber-200 bg-white p-2.5 shadow-lg sm:gap-3 sm:p-3">
+      <div className="mx-auto flex max-w-3xl items-center gap-2 rounded-lg border border-accent-border bg-surface p-2.5 shadow-lg sm:gap-3 sm:p-3">
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-stone-900">Install on this phone</p>
-          <p className="text-sm text-stone-600">
+          <p className="font-semibold text-foreground">Install on this phone</p>
+          <p className="text-sm text-muted">
             Add Upuan Mesa to your home screen for quick access like an app.
           </p>
         </div>
@@ -69,14 +77,14 @@ export function PwaRegister() {
           <button
             type="button"
             onClick={install}
-            className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
           >
             Install
           </button>
           <button
             type="button"
             onClick={() => setDismissed(true)}
-            className="rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-600"
+            className="rounded-lg border border-border px-3 py-2 text-sm text-muted"
           >
             Not now
           </button>

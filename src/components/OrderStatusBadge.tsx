@@ -2,16 +2,16 @@ import { ORDER_STATUS_LABELS } from "@/lib/constants";
 import type { OrderStatus } from "@/generated/prisma/client";
 
 const styles: Record<OrderStatus, string> = {
-  PENDING: "bg-amber-100 text-amber-800",
-  OUT: "bg-sky-100 text-sky-800",
-  RETURNED: "bg-emerald-100 text-emerald-800",
-  CANCELLED: "bg-stone-200 text-stone-600",
+  PENDING: "bg-accent-soft0/20 text-amber-300",
+  OUT: "bg-sky-500/20 text-sky-300",
+  RETURNED: "bg-emerald-500/20 text-emerald-300",
+  CANCELLED: "bg-surface-elevated text-muted",
 };
 
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
   return (
     <span
-      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status]}`}
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${styles[status]}`}
     >
       {ORDER_STATUS_LABELS[status]}
     </span>
