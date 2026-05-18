@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum ItemType {
+  CHAIR
+  TABLE
+}
+
+enum TableSize {
+  FT_4
+  FT_6
+  FT_10
+}
+
+enum ItemStatus {
+  IN_WAREHOUSE
+  OUT
+  DAMAGED
+  MISSING
+  RETIRED
+}
+
+enum OrderStatus {
+  PENDING
+  OUT
+  RETURNED
+  CANCELLED
+}
+
+model EquipmentItem {
+  id            String       @id @default(cuid())
+  code          String       @unique
+  type          ItemType
+  tableSize     TableSize?
+  hasCover      Boolean      @default(false)
+  status              ItemStatus   @default(IN_WAREHOUSE)
+  notes               String?
+  replacementSettled  Boolean      @default(false)
+  rentalOrderId       String?
+  rentalOrder   RentalOrder? @relation(fields: [rentalOrderId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([rentalOrderId])
+  @@index([status, type])
+}
+
+model RentalOrder {
+  id             String          @id @default(cuid())
+  orderNumber    String          @unique
+  customerName   String?
+  eventName      String?
+  eventDate      DateTime?
+  status         OrderStatus     @default(PENDING)
+  offerTotal     Int             @default(0)
+  amountPaid     Int             @default(0)
+  notes          String?
+  lines          OrderLine[]
+  allocatedItems EquipmentItem[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model OrderLine {
+  id        String      @id @default(cuid())
+  orderId   String
+  order     RentalOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  itemType  ItemType
+  tableSize TableSize?
+  hasCover  Boolean     @default(false)
+  quantity  Int
+  /// Per-day price override for this line (e.g. discount). Null = use default prices.
+  unitPrice Int?
+}
+
+model PricingSettings {
+  id                   String   @id @default("default")
+  chairRentalPerDay    Int      @default(150)
+  coverAddonPerDay     Int      @default(10)
+  table4ftRentalPerDay Int      @default(150)
+  table6ftRentalPerDay Int      @default(230)
+  table10ftRentalPerDay Int?
+  chairReplacement     Int      @default(430)
+  table4ftReplacement  Int      @default(1100)
+  table6ftReplacement  Int      @default(2100)
+  table10ftReplacement Int?
+  updatedAt            DateTime @updatedAt
+}

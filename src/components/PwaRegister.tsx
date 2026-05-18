@@ -1,0 +1,87 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+};
+
+export function PwaRegister() {
+  const [installEvent, setInstallEvent] =
+    useState<BeforeInstallPromptEvent | null>(null);
+  const [installed, setInstalled] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+
+    navigator.serviceWorker
+      .register("/sw.js", { scope: "/" })
+      .catch(() => {
+        /* offline / insecure context */
+      });
+
+    const onBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setInstallEvent(e as BeforeInstallPromptEvent);
+    };
+
+    const onInstalled = () => {
+      setInstalled(true);
+      setInstallEvent(null);
+    };
+
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone ===
+        true;
+    if (standalone) setInstalled(true);
+
+    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("appinstalled", onInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  async function install() {
+    if (!installEvent) return;
+    await installEvent.prompt();
+    await installEvent.userChoice;
+    setInstallEvent(null);
+  }
+
+  if (installed || dismissed || !installEvent) return null;
+
+  return (
+    <div className="fixed bottom-[3.75rem] left-0 right-0 z-50 px-3 pb-1 sm:bottom-4 sm:px-4">
+      <div className="mx-auto flex max-w-3xl items-center gap-2 rounded-lg border border-amber-200 bg-white p-2.5 shadow-lg sm:gap-3 sm:p-3">
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-stone-900">Install on this phone</p>
+          <p className="text-sm text-stone-600">
+            Add Upuan Mesa to your home screen for quick access like an app.
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={install}
+            className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+          >
+            Install
+          </button>
+          <button
+            type="button"
+            onClick={() => setDismissed(true)}
+            className="rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-600"
+          >
+            Not now
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

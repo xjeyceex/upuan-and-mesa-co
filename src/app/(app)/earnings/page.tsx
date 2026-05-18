@@ -1,0 +1,151 @@
+import Link from "next/link";
+import { OrderStatusBadge } from "@/components/OrderStatusBadge";
+import { ReplacementPanel } from "@/components/ReplacementPanel";
+import { HelpTip } from "@/components/ux/HelpTip";
+import { PageHeader } from "@/components/ux/PageHeader";
+import { prisma } from "@/lib/db";
+import { getEarningsSummary } from "@/lib/earnings";
+import { formatPeso, orderBalance } from "@/lib/money";
+import { getReplacementSummary } from "@/lib/replacements";
+import { getPricingSettings } from "@/lib/pricing-settings";
+
+export const dynamic = "force-dynamic";
+
+export default async function EarningsPage() {
+  const pricing = await getPricingSettings(prisma);
+  const summary = await getEarningsSummary(prisma);
+  const replacements = await getReplacementSummary(prisma, pricing);
+
+  const orders = await prisma.rentalOrder.findMany({
+    where: { status: { not: "CANCELLED" } },
+    orderBy: { createdAt: "desc" },
+    include: { lines: true },
+  });
+
+  return (
+    <div className="page-stack">
+      <PageHeader
+        title="Money"
+        description="How much customers have paid you, and what they still owe. This is money collected — not profit after buying new chairs."
+      />
+
+      <HelpTip>Payments from all rentals are totaled here.</HelpTip>
+
+      <ReplacementPanel
+        rows={replacements.rows}
+        totalOwed={replacements.totalOwed}
+        unknownCount={replacements.unknownCount}
+        config={pricing}
+      />
+
+      <section className="card-highlight">
+        <p className="text-sm font-semibold text-emerald-900">Total collected</p>
+        <p className="stat-value mt-1 text-emerald-700">
+          {formatPeso(summary.totalCollected)}
+        </p>
+        <p className="mt-2 text-base text-emerald-800">
+          Every payment you recorded on your rentals, added together.
+        </p>
+      </section>
+
+      <section className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Customers still owe you" value={formatPeso(summary.outstanding)} tone="red" />
+        <StatCard label="Total prices you quoted" value={formatPeso(summary.totalQuoted)} />
+        <StatCard
+          label="Collected this month"
+          value={formatPeso(summary.thisMonthCollected)}
+          tone="emerald"
+        />
+        <StatCard label="Quoted this month" value={formatPeso(summary.thisMonthQuoted)} />
+      </section>
+
+      <section className="grid gap-2 sm:grid-cols-2">
+        <div className="card">
+          <h2 className="section-title">Finished rentals</h2>
+          <p className="mt-1 text-lg font-semibold text-stone-900 sm:text-xl">
+            {formatPeso(summary.collectedFromReturned)}
+          </p>
+          <p className="text-sm text-stone-500">
+            collected of {formatPeso(summary.quotedFromReturned)} total price
+          </p>
+        </div>
+        <div className="card">
+          <h2 className="section-title">Quick counts</h2>
+          <ul className="mt-1 space-y-0.5 text-xs text-stone-600 sm:text-sm">
+            <li>{summary.orderCount} active rentals</li>
+            <li>{summary.paidInFullCount} fully paid</li>
+            <li>{summary.cancelledCount} cancelled (not counted in totals)</li>
+          </ul>
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-xl border border-stone-200 bg-white">
+        <div className="border-b border-stone-100 px-3 py-2">
+          <h2 className="section-title">Each rental</h2>
+        </div>
+        {orders.length === 0 ? (
+          <p className="p-4 text-center text-sm text-stone-500">No rentals yet.</p>
+        ) : (
+          <ul className="divide-y divide-stone-100">
+            {orders.map((order) => {
+              const balance = orderBalance(order.offerTotal, order.amountPaid);
+              return (
+                <li key={order.id}>
+                  <Link
+                    href={`/orders/${order.orderNumber}`}
+                    className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 hover:bg-stone-50"
+                  >
+                    <div>
+                      <p className="font-mono text-sm font-semibold">{order.orderNumber}</p>
+                      <p className="text-sm text-stone-600">
+                        {order.eventName || order.customerName || "—"}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-sm">
+                      <span className="text-stone-500">
+                        Price {formatPeso(order.offerTotal)}
+                      </span>
+                      <span className="font-medium text-emerald-700">
+                        Paid {formatPeso(order.amountPaid)}
+                      </span>
+                      {balance > 0 && (
+                        <span className="font-medium text-red-600">
+                          Owes {formatPeso(balance)}
+                        </span>
+                      )}
+                      <OrderStatusBadge status={order.status} />
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "emerald" | "red";
+}) {
+  const valueClass =
+    tone === "emerald"
+      ? "text-emerald-700"
+      : tone === "red"
+        ? "text-red-700"
+        : "text-stone-900";
+
+  return (
+    <div className="card">
+      <p className="text-xs font-medium text-stone-600">{label}</p>
+      <p className={`mt-0.5 text-base font-semibold sm:text-lg ${valueClass}`}>{value}</p>
+    </div>
+  );
+}
