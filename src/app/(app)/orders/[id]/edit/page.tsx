@@ -272,7 +272,7 @@ export default function EditOrderPage() {
     const paid = showMoney
       ? parsePesoInputStrict(amountPaid, "Amount paid")
       : ({ ok: true as const, value: 0 });
-    if (showMoney && (!offer.ok || !paid.ok)) return;
+    if ((showMoney || borrowCancelled) && (!offer.ok || !paid.ok)) return;
 
     const validatedLines = lines.map((line, index) => {
       const qty = parseWholeNumberString(line.quantity, {
@@ -287,10 +287,11 @@ export default function EditOrderPage() {
 
     setLoading(true);
 
-    const moneyPatch =
-      showMoney || borrowCancelled
-        ? { offerTotal: offer.value, amountPaid: paid.value }
-        : {};
+    let moneyPatch: { offerTotal: number; amountPaid: number } | undefined;
+    if (showMoney || borrowCancelled) {
+      if (!offer.ok || !paid.ok) return;
+      moneyPatch = { offerTotal: offer.value, amountPaid: paid.value };
+    }
 
     const res = await fetch(`/api/orders/${encodeURIComponent(id)}`, {
       method: "PATCH",
@@ -299,7 +300,7 @@ export default function EditOrderPage() {
         customerName,
         rentDate: rentDate || null,
         returnDate: returnDate || null,
-        ...moneyPatch,
+        ...(moneyPatch ?? {}),
         notes,
         lines: validatedLines.map(({ line, qty, unit }) => ({
           itemType: line.itemType,
