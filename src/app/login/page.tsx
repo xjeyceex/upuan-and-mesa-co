@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState, Suspense } from "react";
 import { TextField } from "@/components/FormField";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import Image from "next/image";
 
 function LoginForm() {
   const router = useRouter();
@@ -41,7 +42,19 @@ function LoginForm() {
         <ThemeToggle />
       </div>
       <div className="w-full max-w-sm rounded-2xl border border-border bg-surface p-6 shadow-sm sm:p-8">
-        <h1 className="text-2xl font-bold text-foreground">Upuan and Mesa Co.</h1>
+        <div className="flex items-center gap-3">
+          <div className="relative h-11 w-11 overflow-hidden rounded-2xl border border-border bg-surface-elevated">
+            <Image
+              src="/business-logo.jpg"
+              alt="Upuan and Mesa Co."
+              fill
+              sizes="44px"
+              className="object-cover"
+              priority
+            />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">Upuan and Mesa Co.</h1>
+        </div>
         <p className="mt-2 text-sm text-muted">
           Sign in to manage your chairs, tables, and rentals.
         </p>

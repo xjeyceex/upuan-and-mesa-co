@@ -36,7 +36,10 @@ export function StockAdjustPanel({ onUpdated }: { onUpdated?: () => void }) {
   }, []);
 
   useEffect(() => {
-    load();
+    const t = setTimeout(() => {
+      void load();
+    }, 0);
+    return () => clearTimeout(t);
   }, [load]);
 
   async function save(group: StockGroup) {

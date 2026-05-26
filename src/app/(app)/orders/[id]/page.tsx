@@ -36,8 +36,8 @@ type Order = {
   id: string;
   orderNumber: string;
   customerName: string | null;
-  eventName: string | null;
   eventDate: string | null;
+  returnDate: string | null;
   status: OrderStatus;
   offerTotal: number;
   amountPaid: number;
@@ -62,6 +62,7 @@ export default function OrderDetailPage() {
     amountPaid?: string;
   }>({});
   const [deleting, setDeleting] = useState(false);
+  const [showMoney, setShowMoney] = useState(false);
   const { config, loading: pricesLoading } = usePricingConfig();
 
   const load = useCallback(async () => {
@@ -76,12 +77,15 @@ export default function OrderDetailPage() {
     const data: Order = await res.json();
     setOrder(data);
     setOfferInput(String(data.offerTotal || ""));
-    setPaidInput(String(data.amountPaid || ""));
+    setPaidInput(String(data.amountPaid ?? 0));
     setLoading(false);
   }, [id]);
 
   useEffect(() => {
-    load();
+    const t = setTimeout(() => {
+      void load();
+    }, 0);
+    return () => clearTimeout(t);
   }, [load]);
 
   async function patchOrder(body: Record<string, unknown>): Promise<boolean> {
@@ -106,6 +110,10 @@ export default function OrderDetailPage() {
 
   async function updateStatus(status: OrderStatus) {
     await patchOrder({ status });
+  }
+
+  async function markReturned() {
+    await patchOrder({ status: "RETURNED" });
   }
 
   async function syncStock() {
@@ -269,24 +277,33 @@ export default function OrderDetailPage() {
           <div className="min-w-0">
             <h1 className="font-mono text-lg font-bold sm:text-xl">{order.orderNumber}</h1>
             <p className="mt-0.5 truncate text-base font-medium text-foreground">
-              {order.eventName || order.customerName || "Unnamed event"}
+              {order.customerName || "Rental"}
             </p>
-            {order.customerName && order.eventName && (
-              <p className="text-sm text-muted">{order.customerName}</p>
-            )}
             {order.eventDate && (
               <p className="mt-1 text-sm text-muted">
-                {new Date(order.eventDate).toLocaleDateString(undefined, {
-                  weekday: "short",
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                })}
+                Rent {new Date(order.eventDate).toLocaleDateString()}
+              </p>
+            )}
+            {order.returnDate && (
+              <p className="mt-1 text-sm text-muted">
+                Return {new Date(order.returnDate).toLocaleDateString()}
               </p>
             )}
           </div>
           <OrderStatusBadge status={order.status} />
         </div>
+
+        {order.returnDate &&
+          order.status !== "RETURNED" &&
+          new Date(order.returnDate).getTime() <= new Date().setHours(23, 59, 59, 999) && (
+            <button
+              type="button"
+              onClick={markReturned}
+              className="mt-3 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+            >
+              Mark returned
+            </button>
+          )}
 
         <div className="mt-4 grid grid-cols-2 gap-2">
           <button
@@ -322,46 +339,76 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      <section className="card-accent space-y-4">
-        <h2 className="section-title">Money</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <WholeNumberField
-            label="Total price (your offer)"
-            allowEmpty
-            value={offerInput}
-            onValueChange={setOfferInput}
-            error={moneyErrors.offerTotal}
-          />
-          <WholeNumberField
-            label="How much they paid already"
-            allowEmpty
-            value={paidInput}
-            onValueChange={setPaidInput}
-            error={moneyErrors.amountPaid}
-          />
-        </div>
-        <PaymentSummary offerTotal={previewOffer} amountPaid={previewPaid} size="lg" />
-        <div className="flex flex-wrap gap-2">
-          {canSettleBalance && (
+      {!showMoney ? (
+        <button
+          type="button"
+          onClick={() => setShowMoney(true)}
+          className="w-full rounded-xl border border-border bg-surface-elevated px-4 py-3 text-sm font-semibold text-foreground hover:bg-surface"
+        >
+          Will borrow
+        </button>
+      ) : (
+        <section className="card-accent space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="section-title">Money</h2>
             <button
               type="button"
-              onClick={settleBalance}
-              disabled={savingPayment}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+              onClick={() => {
+                setShowMoney(false);
+                if (order) {
+                  setOfferInput(String(order.offerTotal || ""));
+                  setPaidInput(String(order.amountPaid ?? 0));
+                }
+                setMoneyErrors({});
+              }}
+              className="shrink-0 text-sm font-medium text-muted underline hover:text-foreground"
             >
-              {savingPayment ? "Saving…" : `Settle balance (${formatPeso(previewBalance)})`}
+              Cancel borrow
             </button>
-          )}
-          <button
-            type="button"
-            onClick={savePayment}
-            disabled={savingPayment}
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
-          >
-            {savingPayment ? "Saving…" : "Save money changes"}
-          </button>
-        </div>
-      </section>
+          </div>
+          <p className="text-sm text-muted">
+            Total price vs paid today — balance is what they still owe.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <WholeNumberField
+              label="Total price (your offer)"
+              allowEmpty
+              value={offerInput}
+              onValueChange={setOfferInput}
+              error={moneyErrors.offerTotal}
+            />
+            <WholeNumberField
+              label="How much they paid already"
+              allowEmpty
+              value={paidInput}
+              onValueChange={setPaidInput}
+              error={moneyErrors.amountPaid}
+              placeholder="0"
+            />
+          </div>
+          <PaymentSummary offerTotal={previewOffer} amountPaid={previewPaid} size="lg" />
+          <div className="flex flex-wrap gap-2">
+            {canSettleBalance && (
+              <button
+                type="button"
+                onClick={settleBalance}
+                disabled={savingPayment}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {savingPayment ? "Saving…" : `Settle balance (${formatPeso(previewBalance)})`}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={savePayment}
+              disabled={savingPayment}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {savingPayment ? "Saving…" : "Save money changes"}
+            </button>
+          </div>
+        </section>
+      )}
 
       <OrderPriceReference lines={order.lines} config={config} />
 

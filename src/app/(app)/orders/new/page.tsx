@@ -7,7 +7,9 @@ import { TextAreaField, TextField, WholeNumberField } from "@/components/FormFie
 import { BackLink } from "@/components/ux/BackLink";
 import { HelpTip } from "@/components/ux/HelpTip";
 import { PageHeader } from "@/components/ux/PageHeader";
+import { LineSpecialPriceToggle } from "@/components/LineSpecialPriceToggle";
 import { LinePriceHint, OrderPriceReference } from "@/components/RentalPriceHint";
+import { useAutoOfferTotal } from "@/hooks/useAutoOfferTotal";
 import { usePricingConfig } from "@/hooks/usePricingConfig";
 import {
   formatPeso,
@@ -19,7 +21,7 @@ import {
   parseWholeNumberString,
   validateWholeNumberString,
 } from "@/lib/validate-numbers";
-import { chairCoverLabel, orderReferenceTotal, tableSizeButtonLabel } from "@/lib/pricing";
+import { chairCoverLabel, dailyRate, orderReferenceTotal, tableSizeButtonLabel } from "@/lib/pricing";
 import Link from "next/link";
 
 type LineDraft = {
@@ -67,12 +69,12 @@ export default function NewOrderPage() {
   const router = useRouter();
   const { config, loading: pricesLoading } = usePricingConfig();
   const [customerName, setCustomerName] = useState("");
-  const [eventName, setEventName] = useState("");
-  const [eventDate, setEventDate] = useState("");
-  const [offerTotal, setOfferTotal] = useState("");
-  const [amountPaid, setAmountPaid] = useState("");
+  const [rentDate, setRentDate] = useState("");
+  const [returnDate, setReturnDate] = useState("");
+  const [amountPaid, setAmountPaid] = useState("0");
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<LineDraft[]>([newLine("CHAIR")]);
+  const [showMoney, setShowMoney] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<{
@@ -80,6 +82,33 @@ export default function NewOrderPage() {
     amountPaid?: string;
     lines?: Record<string, { quantity?: string; unitPrice?: string }>;
   }>({});
+
+  const pricingLines = useMemo(() => lines.map(lineForPricing), [lines]);
+  const suggestedDaily = useMemo(
+    () => (config ? orderReferenceTotal(config, pricingLines) : null),
+    [config, pricingLines],
+  );
+
+  const {
+    offerTotal,
+    setOfferTotal,
+    resetToSuggested,
+    unlockOfferTotal,
+    setOfferToZero,
+    offerTotalLocked,
+  } = useAutoOfferTotal(suggestedDaily);
+
+  function openBorrow() {
+    setShowMoney(true);
+    setAmountPaid("0");
+    unlockOfferTotal();
+  }
+
+  function cancelBorrow() {
+    setShowMoney(false);
+    setAmountPaid("0");
+    setOfferToZero();
+  }
 
   const offerParsed = parsePesoInputStrict(offerTotal, "Total price");
   const paidParsed = parsePesoInputStrict(amountPaid, "Amount paid");
@@ -91,11 +120,14 @@ export default function NewOrderPage() {
     [offerNum, paidNum],
   );
 
-  const pricingLines = useMemo(() => lines.map(lineForPricing), [lines]);
-  const suggestedDaily = useMemo(
-    () => (config ? orderReferenceTotal(config, pricingLines) : null),
-    [config, pricingLines],
-  );
+  function defaultUnitPricePlaceholder(line: LineDraft) {
+    if (!config) return "Default price";
+    const rate = dailyRate(config, line.itemType, {
+      hasCover: line.itemType === "CHAIR" ? line.hasCover : false,
+      tableSize: line.itemType === "TABLE" ? line.tableSize : null,
+    });
+    return rate != null ? `Default ₱${rate}/day` : "Default price";
+  }
 
   function updateLine(id: string, patch: Partial<LineDraft>) {
     setLines((prev) =>
@@ -109,10 +141,12 @@ export default function NewOrderPage() {
 
   function validateForm(): boolean {
     const errors: typeof fieldErrors = { lines: {} };
-    const offerErr = validatePesoInput(offerTotal, "Total price");
-    if (offerErr) errors.offerTotal = offerErr;
-    const paidErr = validatePesoInput(amountPaid, "Amount paid");
-    if (paidErr) errors.amountPaid = paidErr;
+    if (showMoney) {
+      const offerErr = validatePesoInput(offerTotal, "Total price");
+      if (offerErr) errors.offerTotal = offerErr;
+      const paidErr = validatePesoInput(amountPaid, "Amount paid");
+      if (paidErr) errors.amountPaid = paidErr;
+    }
 
     lines.forEach((line, index) => {
       const key = line.id;
@@ -138,6 +172,19 @@ export default function NewOrderPage() {
       setError("Please fix the invalid numbers below.");
       return false;
     }
+
+    if (returnDate && !rentDate) {
+      setError("Rent date is required if return date is set.");
+      return false;
+    }
+    if (rentDate && returnDate) {
+      const r = new Date(rentDate);
+      const ret = new Date(returnDate);
+      if (!Number.isNaN(r.getTime()) && !Number.isNaN(ret.getTime()) && ret.getTime() < r.getTime()) {
+        setError("Return date cannot be earlier than rent date.");
+        return false;
+      }
+    }
     return true;
   }
 
@@ -146,8 +193,12 @@ export default function NewOrderPage() {
     setError("");
     if (!validateForm()) return;
 
-    const offer = parsePesoInputStrict(offerTotal, "Total price");
-    const paid = parsePesoInputStrict(amountPaid, "Amount paid");
+    const offer = showMoney
+      ? parsePesoInputStrict(offerTotal, "Total price")
+      : ({ ok: true as const, value: 0 });
+    const paid = showMoney
+      ? parsePesoInputStrict(amountPaid, "Amount paid")
+      : ({ ok: true as const, value: 0 });
     if (!offer.ok || !paid.ok) return;
 
     const validatedLines = lines.map((line, index) => {
@@ -168,8 +219,8 @@ export default function NewOrderPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         customerName,
-        eventName,
-        eventDate: eventDate || null,
+        rentDate: rentDate || null,
+        returnDate: returnDate || null,
         offerTotal: offer.value,
         amountPaid: paid.value,
         notes,
@@ -215,25 +266,27 @@ export default function NewOrderPage() {
 
       <form onSubmit={onSubmit} className="page-stack">
         <div className="card space-y-4">
-          <h2 className="section-title">Who and when</h2>
+          <h2 className="section-title">Who and dates</h2>
           <TextField
             label="Customer name"
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
             placeholder="Optional"
           />
-          <TextField
-            label="Event name"
-            value={eventName}
-            onChange={(e) => setEventName(e.target.value)}
-            placeholder="e.g. Santos wedding"
-          />
-          <TextField
-            label="Event date"
-            type="date"
-            value={eventDate}
-            onChange={(e) => setEventDate(e.target.value)}
-          />
+          <div className="grid grid-cols-2 gap-2">
+            <TextField
+              label="Rent date"
+              type="date"
+              value={rentDate}
+              onChange={(e) => setRentDate(e.target.value)}
+            />
+            <TextField
+              label="Return date"
+              type="date"
+              value={returnDate}
+              onChange={(e) => setReturnDate(e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="card space-y-2">
@@ -251,7 +304,7 @@ export default function NewOrderPage() {
           {lines.map((line, index) => (
             <div
               key={line.id}
-              className="space-y-3 rounded-lg border border-border bg-surface-elevated p-4"
+              className="space-y-2 rounded-lg border border-border bg-surface-elevated p-3"
             >
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-muted">
@@ -326,68 +379,94 @@ export default function NewOrderPage() {
 
               <LinePriceHint line={lineForPricing(line)} config={config} />
 
-              <WholeNumberField
-                label="Special price / day (optional)"
-                hint="Empty = default price"
-                allowEmpty
-                value={line.unitPrice}
-                onValueChange={(v) => updateLine(line.id, { unitPrice: v })}
-                error={fieldErrors.lines?.[line.id]?.unitPrice}
-                placeholder={`Default e.g. ${config.chairRentalPerDay}`}
-              />
-
-              <WholeNumberField
-                label="Quantity"
-                value={line.quantity}
-                onValueChange={(v) => updateLine(line.id, { quantity: v })}
-                error={fieldErrors.lines?.[line.id]?.quantity}
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <LineSpecialPriceToggle
+                  value={line.unitPrice}
+                  onValueChange={(v) => updateLine(line.id, { unitPrice: v })}
+                  error={fieldErrors.lines?.[line.id]?.unitPrice}
+                  placeholder={defaultUnitPricePlaceholder(line)}
+                  defaultHint={defaultUnitPricePlaceholder(line)}
+                />
+                <WholeNumberField
+                  label="Qty"
+                  value={line.quantity}
+                  onValueChange={(v) => updateLine(line.id, { quantity: v })}
+                  error={fieldErrors.lines?.[line.id]?.quantity}
+                  className="[&_input]:mt-1 [&_input]:rounded-lg [&_input]:py-2 [&_input]:text-sm"
+                />
+              </div>
             </div>
           ))}
         </div>
 
         <OrderPriceReference lines={pricingLines} config={config} />
 
-        <div className="card-accent space-y-4">
-          <h2 className="section-title">Money</h2>
-          <p className="text-sm text-muted">
-            Total price vs paid today — balance is what they still owe.
-          </p>
-          {suggestedDaily != null && (
-            <button
-              type="button"
-              onClick={() => setOfferTotal(String(suggestedDaily))}
-              className="text-sm font-semibold text-accent underline hover:text-amber-950"
-            >
-              Use suggested {formatPeso(suggestedDaily)} as total price
-            </button>
-          )}
-          <div className="grid gap-2 sm:grid-cols-2">
-            <WholeNumberField
-              label="Total price (your offer)"
-              allowEmpty
-              value={offerTotal}
-              onValueChange={setOfferTotal}
-              error={fieldErrors.offerTotal}
-              placeholder="1100"
-            />
-            <WholeNumberField
-              label="How much they paid already"
-              allowEmpty
-              value={amountPaid}
-              onValueChange={setAmountPaid}
-              error={fieldErrors.amountPaid}
-              placeholder="800"
-            />
+        {!showMoney ? (
+          <button
+            type="button"
+            onClick={openBorrow}
+            className="w-full rounded-xl border border-border bg-surface-elevated px-4 py-3 text-sm font-semibold text-foreground hover:bg-surface"
+          >
+            Will borrow
+          </button>
+        ) : (
+          <div className="card-accent space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="section-title">Money</h2>
+              <button
+                type="button"
+                onClick={cancelBorrow}
+                className="shrink-0 text-sm font-medium text-muted underline hover:text-foreground"
+              >
+                Cancel borrow
+              </button>
+            </div>
+            <p className="text-sm text-muted">
+              Total price vs paid today — balance is what they still owe.
+            </p>
+            <p className="text-xs text-muted">
+              {offerTotalLocked
+                ? "You set a custom total. Recalculate if items changed."
+                : suggestedDaily != null
+                  ? `Total price follows items (${formatPeso(suggestedDaily)} at default rates).`
+                  : "Total price updates from items when quantities are valid."}
+            </p>
+            {offerTotalLocked && suggestedDaily != null && (
+              <button
+                type="button"
+                onClick={resetToSuggested}
+                className="text-sm font-semibold text-accent underline hover:text-accent-hover"
+              >
+                Recalculate {formatPeso(suggestedDaily)} from items
+              </button>
+            )}
+            <div className="grid gap-2 sm:grid-cols-2">
+              <WholeNumberField
+                label="Total price (your offer)"
+                allowEmpty
+                value={offerTotal}
+                onValueChange={setOfferTotal}
+                error={fieldErrors.offerTotal}
+                placeholder={suggestedDaily != null ? String(suggestedDaily) : "1100"}
+              />
+              <WholeNumberField
+                label="How much they paid already"
+                allowEmpty
+                value={amountPaid}
+                onValueChange={setAmountPaid}
+                error={fieldErrors.amountPaid}
+                placeholder="0"
+              />
+            </div>
+            {(offerNum > 0 || paidNum > 0) && (
+              <PaymentSummary
+                offerTotal={balancePreview.offerTotal}
+                amountPaid={balancePreview.amountPaid}
+                size="lg"
+              />
+            )}
           </div>
-          {(offerNum > 0 || paidNum > 0) && (
-            <PaymentSummary
-              offerTotal={balancePreview.offerTotal}
-              amountPaid={balancePreview.amountPaid}
-              size="lg"
-            />
-          )}
-        </div>
+        )}
 
         <TextAreaField
           label="Notes"

@@ -49,7 +49,7 @@ export async function GET(request: Request) {
       orderBy: { code: "asc" },
       take: limit,
       include: {
-        rentalOrder: { select: { orderNumber: true, eventName: true } },
+      rentalOrder: { select: { orderNumber: true } },
       },
     }),
     prisma.equipmentItem.count({ where }),

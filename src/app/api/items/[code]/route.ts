@@ -12,7 +12,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const item = await prisma.equipmentItem.findUnique({
     where: { code: code.toUpperCase() },
     include: {
-      rentalOrder: { select: { orderNumber: true, eventName: true } },
+      rentalOrder: { select: { orderNumber: true } },
     },
   });
 
@@ -87,7 +87,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       ...(hasCover !== undefined && existing.type === "CHAIR" ? { hasCover } : {}),
     },
     include: {
-      rentalOrder: { select: { orderNumber: true, eventName: true } },
+      rentalOrder: { select: { orderNumber: true } },
     },
   });
 

@@ -28,7 +28,6 @@ type Order = {
   id: string;
   orderNumber: string;
   customerName: string | null;
-  eventName: string | null;
   status: OrderStatus;
   offerTotal: number;
   amountPaid: number;
@@ -48,33 +47,78 @@ type EarningsData = {
 export default function EarningsPage() {
   const [data, setData] = useState<EarningsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError("");
+    const CACHE_KEY = "upuan-mesa:earnings:v1";
+
+    const t = setTimeout(() => {
+      let hadCache = false;
+
       try {
-        const res = await fetch("/api/earnings");
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "Could not load money report");
-        if (!cancelled) setData(json);
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Could not load money report");
+        const cached = sessionStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached) as EarningsData;
+          setData(parsed);
+          setLoading(false);
+          setRefreshing(true);
+          hadCache = true;
         }
-      } finally {
-        if (!cancelled) setLoading(false);
+      } catch {
+        // ignore
       }
-    })();
+
+      (async () => {
+        if (!hadCache) setLoading(true);
+        setError("");
+        try {
+          const res = await fetch("/api/earnings", { cache: "no-store" });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error ?? "Could not load money report");
+          if (!cancelled) {
+            setData(json);
+            try {
+              sessionStorage.setItem(CACHE_KEY, JSON.stringify(json));
+            } catch {
+              // ignore
+            }
+          }
+        } catch (e) {
+          if (!cancelled && !hadCache) {
+            setError(e instanceof Error ? e.message : "Could not load money report");
+          }
+        } finally {
+          if (!cancelled) {
+            setLoading(false);
+            setRefreshing(false);
+          }
+        }
+      })();
+    }, 0);
     return () => {
       cancelled = true;
+      clearTimeout(t);
     };
   }, []);
 
-  if (loading) {
-    return <p className="text-muted">Loading money report…</p>;
+  if (loading && !data) {
+    return (
+      <div className="page-stack" aria-busy>
+        <div className="animate-pulse space-y-3">
+          <div className="h-7 w-28 rounded-lg bg-surface-elevated" />
+          <div className="h-4 w-72 rounded bg-surface-elevated" />
+        </div>
+        <div className="h-28 rounded-2xl bg-surface-elevated" />
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-20 rounded-2xl bg-surface-elevated" />
+          ))}
+        </div>
+        <div className="h-40 rounded-2xl bg-surface-elevated" />
+      </div>
+    );
   }
 
   if (error || !data) {
@@ -89,6 +133,9 @@ export default function EarningsPage() {
 
   return (
     <div className="page-stack">
+      {refreshing ? (
+        <p className="text-xs font-semibold text-muted">Updating…</p>
+      ) : null}
       <PageHeader
         title="Money"
         description="How much customers have paid you, and what they still owe."
@@ -163,7 +210,7 @@ export default function EarningsPage() {
                     <div>
                       <p className="font-mono text-sm font-semibold">{order.orderNumber}</p>
                       <p className="text-sm text-muted">
-                        {order.eventName || order.customerName || "—"}
+                        {order.customerName || "—"}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-sm">

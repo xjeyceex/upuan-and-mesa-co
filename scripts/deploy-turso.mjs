@@ -28,7 +28,15 @@ const existing = await client.execute(
 );
 
 if (existing.rows.length > 0) {
-  console.log("Turso already has tables — skipping schema setup.");
+  const cols = await client.execute("PRAGMA table_info('RentalOrder')");
+  const colNames = new Set(cols.rows.map((r) => String(r.name)));
+
+  if (!colNames.has("returnDate")) {
+    console.log("Adding RentalOrder.returnDate…");
+    await client.execute("ALTER TABLE RentalOrder ADD COLUMN returnDate DATETIME");
+  }
+
+  console.log("Turso schema is up to date.");
   process.exit(0);
 }
 

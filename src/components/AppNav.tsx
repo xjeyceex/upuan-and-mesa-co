@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -29,9 +30,21 @@ export function AppNav() {
     <>
       <header className="border-b border-border bg-surface">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 py-4">
-          <div className="min-w-0">
-            <p className="truncate text-lg font-bold text-foreground">Upuan and Mesa Co.</p>
-            <p className="text-sm text-muted">Chairs & tables</p>
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="relative h-10 w-10 overflow-hidden rounded-xl border border-border bg-surface-elevated">
+              <Image
+                src="/business-logo.jpg"
+                alt="Upuan and Mesa Co."
+                fill
+                sizes="40px"
+                className="object-cover"
+                priority
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-lg font-bold text-foreground">Upuan and Mesa Co.</p>
+              <p className="text-sm text-muted">Chairs & tables</p>
+            </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <ThemeToggle />

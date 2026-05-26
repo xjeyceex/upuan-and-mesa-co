@@ -57,6 +57,7 @@ model RentalOrder {
   customerName   String?
   eventName      String?
   eventDate      DateTime?
+  returnDate     DateTime?
   status         OrderStatus     @default(PENDING)
   offerTotal     Int             @default(0)
   amountPaid     Int             @default(0)

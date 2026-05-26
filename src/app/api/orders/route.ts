@@ -38,13 +38,28 @@ export async function POST(request: Request) {
 
   const customerName =
     typeof body.customerName === "string" ? body.customerName.trim() || null : null;
-  const eventName =
-    typeof body.eventName === "string" ? body.eventName.trim() || null : null;
-  const eventDate =
-    typeof body.eventDate === "string" && body.eventDate
-      ? new Date(body.eventDate)
+  const rentDate =
+    typeof body.rentDate === "string" && body.rentDate
+      ? new Date(body.rentDate)
+      : null;
+  const returnDate =
+    typeof body.returnDate === "string" && body.returnDate
+      ? new Date(body.returnDate)
       : null;
   const notes = typeof body.notes === "string" ? body.notes.trim() || null : null;
+
+  if (rentDate && Number.isNaN(rentDate.getTime())) {
+    return NextResponse.json({ error: "Rent date is invalid" }, { status: 400 });
+  }
+  if (returnDate && Number.isNaN(returnDate.getTime())) {
+    return NextResponse.json({ error: "Return date is invalid" }, { status: 400 });
+  }
+  if (returnDate && !rentDate) {
+    return NextResponse.json({ error: "Rent date is required if return date is set" }, { status: 400 });
+  }
+  if (rentDate && returnDate && returnDate.getTime() < rentDate.getTime()) {
+    return NextResponse.json({ error: "Return date cannot be earlier than rent date" }, { status: 400 });
+  }
 
   const orderNumber = await getNextOrderNumber();
 
@@ -52,8 +67,9 @@ export async function POST(request: Request) {
     data: {
       orderNumber,
       customerName,
-      eventName,
-      eventDate,
+      eventName: null,
+      eventDate: rentDate,
+      returnDate,
       offerTotal: offerResult.value,
       amountPaid: paidResult.value,
       notes,

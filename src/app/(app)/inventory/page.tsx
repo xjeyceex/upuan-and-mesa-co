@@ -72,10 +72,6 @@ function InventoryContent() {
     return () => clearTimeout(t);
   }, [load, listKey]);
 
-  useEffect(() => {
-    if (type !== "TABLE") setTableSize("");
-  }, [type]);
-
   return (
     <div className="page-stack">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -110,7 +106,11 @@ function InventoryContent() {
           <div className="flex flex-wrap gap-2">
             <select
               value={type}
-              onChange={(e) => setType(e.target.value)}
+              onChange={(e) => {
+                const next = e.target.value;
+                setType(next);
+                if (next !== "TABLE") setTableSize("");
+              }}
               className="field-input rounded-lg border border-border px-2.5 py-2 text-sm"
               aria-label="Type"
             >

@@ -38,9 +38,9 @@ export function OrderPriceReference({
 
   return (
     <div className="rounded-lg border border-accent-border bg-accent-soft px-4 py-3">
-      <p className="text-sm font-semibold text-amber-950">Suggested price (per day)</p>
+      <p className="text-sm font-semibold text-foreground">Suggested price (per day)</p>
       <p className="mt-1 text-xl font-bold text-accent">{formatPeso(total)}</p>
-      <p className="mt-1 text-xs text-accent">{pricingConfigSummary(config)}</p>
+      <p className="mt-1 text-xs text-muted">{pricingConfigSummary(config)}</p>
     </div>
   );
 }

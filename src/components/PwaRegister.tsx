@@ -10,7 +10,13 @@ type BeforeInstallPromptEvent = Event & {
 export function PwaRegister() {
   const [installEvent, setInstallEvent] =
     useState<BeforeInstallPromptEvent | null>(null);
-  const [installed, setInstalled] = useState(false);
+  const [installed, setInstalled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+    return standalone;
+  });
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
@@ -39,12 +45,6 @@ export function PwaRegister() {
       setInstalled(true);
       setInstallEvent(null);
     };
-
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as Navigator & { standalone?: boolean }).standalone ===
-        true;
-    if (standalone) setInstalled(true);
 
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
     window.addEventListener("appinstalled", onInstalled);

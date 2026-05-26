@@ -66,15 +66,49 @@ export async function PATCH(request: Request, context: RouteContext) {
   const syncStock = Boolean(body.syncStock);
   const notes = body.notes as string | undefined;
   const customerName = body.customerName as string | undefined;
-  const eventName = body.eventName as string | undefined;
-  const eventDate =
-    body.eventDate === null || body.eventDate === ""
+  const rentDate =
+    body.rentDate === null || body.rentDate === ""
       ? null
-      : typeof body.eventDate === "string"
-        ? new Date(body.eventDate)
+      : typeof body.rentDate === "string"
+        ? new Date(body.rentDate)
+        : undefined;
+  const returnDate =
+    body.returnDate === null || body.returnDate === ""
+      ? null
+      : typeof body.returnDate === "string"
+        ? new Date(body.returnDate)
         : undefined;
   let offerTotal: number | undefined;
   let amountPaid: number | undefined;
+
+  if (rentDate instanceof Date && Number.isNaN(rentDate.getTime())) {
+    return NextResponse.json({ error: "Rent date is invalid" }, { status: 400 });
+  }
+  if (returnDate instanceof Date && Number.isNaN(returnDate.getTime())) {
+    return NextResponse.json({ error: "Return date is invalid" }, { status: 400 });
+  }
+
+  const effectiveRentDate =
+    rentDate === undefined ? existing.eventDate : rentDate;
+  const effectiveReturnDate =
+    returnDate === undefined ? existing.returnDate : returnDate;
+
+  if (effectiveReturnDate != null && effectiveRentDate == null) {
+    return NextResponse.json(
+      { error: "Rent date is required if return date is set" },
+      { status: 400 },
+    );
+  }
+  if (
+    effectiveRentDate != null &&
+    effectiveReturnDate != null &&
+    new Date(effectiveReturnDate).getTime() < new Date(effectiveRentDate).getTime()
+  ) {
+    return NextResponse.json(
+      { error: "Return date cannot be earlier than rent date" },
+      { status: 400 },
+    );
+  }
 
   if (body.offerTotal !== undefined) {
     const offerResult = parsePesoFromUnknown(body.offerTotal, "Total price");
@@ -133,8 +167,8 @@ export async function PATCH(request: Request, context: RouteContext) {
         ...(status ? { status } : {}),
         ...(notes !== undefined ? { notes: notes || null } : {}),
         ...(customerName !== undefined ? { customerName: customerName || null } : {}),
-        ...(eventName !== undefined ? { eventName: eventName || null } : {}),
-        ...(eventDate !== undefined ? { eventDate } : {}),
+        ...(rentDate !== undefined ? { eventDate: rentDate } : {}),
+        ...(returnDate !== undefined ? { returnDate } : {}),
         ...(offerTotal !== undefined ? { offerTotal } : {}),
         ...(amountPaid !== undefined ? { amountPaid } : {}),
       },

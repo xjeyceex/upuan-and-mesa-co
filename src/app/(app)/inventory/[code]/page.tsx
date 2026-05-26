@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { BackLink } from "@/components/ux/BackLink";
-import { HelpTip } from "@/components/ux/HelpTip";
 import { STATUS_LABELS, TABLE_SIZE_LABELS } from "@/lib/constants";
 import { usePricingConfig } from "@/hooks/usePricingConfig";
 import { formatPeso } from "@/lib/money";
@@ -27,7 +26,7 @@ type Item = {
   replacementSettled: boolean;
   replacementCost: number | null;
   replacementDue: boolean;
-  rentalOrder?: { orderNumber: string; eventName: string | null } | null;
+  rentalOrder?: { orderNumber: string } | null;
 };
 
 const PROBLEM_STATUSES: Array<"DAMAGED" | "MISSING"> = ["DAMAGED", "MISSING"];
@@ -56,7 +55,10 @@ export default function ItemDetailPage() {
   }, [code]);
 
   useEffect(() => {
-    load();
+    const t = setTimeout(() => {
+      void load();
+    }, 0);
+    return () => clearTimeout(t);
   }, [load]);
 
   async function updateStatus(status: ItemStatus) {
@@ -180,7 +182,6 @@ export default function ItemDetailPage() {
                 className="mt-2 inline-block text-sm font-semibold text-accent hover:underline"
               >
                 On rental {item.rentalOrder.orderNumber}
-                {item.rentalOrder.eventName ? ` · ${item.rentalOrder.eventName}` : ""}
               </Link>
             )}
           </div>

@@ -23,7 +23,10 @@ export function usePricingConfig() {
   }, []);
 
   useEffect(() => {
-    load();
+    const t = setTimeout(() => {
+      void load();
+    }, 0);
+    return () => clearTimeout(t);
   }, [load]);
 
   return { config, loading, error, reload: load };

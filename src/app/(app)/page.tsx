@@ -23,7 +23,6 @@ type RecentOrder = {
   id: string;
   orderNumber: string;
   customerName: string | null;
-  eventName: string | null;
   offerTotal: number;
   amountPaid: number;
   lines: OrderLine[];
@@ -52,33 +51,85 @@ type HomeData = {
 export default function HomePage() {
   const [data, setData] = useState<HomeData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError("");
+    const CACHE_KEY = "upuan-mesa:home:v1";
+
+    const t = setTimeout(() => {
+      let hadCache = false;
+
+      // Instant render from last view (best effort).
       try {
-        const res = await fetch("/api/home");
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "Could not load home");
-        if (!cancelled) setData(json);
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Could not load home");
+        const cached = sessionStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached) as HomeData;
+          setData(parsed);
+          setLoading(false);
+          setRefreshing(true);
+          hadCache = true;
         }
-      } finally {
-        if (!cancelled) setLoading(false);
+      } catch {
+        // ignore
       }
-    })();
+
+      (async () => {
+        if (!hadCache) setLoading(true);
+        setError("");
+        try {
+          const res = await fetch("/api/home", { cache: "no-store" });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error ?? "Could not load home");
+          if (!cancelled) {
+            setData(json);
+            try {
+              sessionStorage.setItem(CACHE_KEY, JSON.stringify(json));
+            } catch {
+              // ignore
+            }
+          }
+        } catch (e) {
+          if (!cancelled && !hadCache) {
+            setError(e instanceof Error ? e.message : "Could not load home");
+          }
+        } finally {
+          if (!cancelled) {
+            setLoading(false);
+            setRefreshing(false);
+          }
+        }
+      })();
+    }, 0);
     return () => {
       cancelled = true;
+      clearTimeout(t);
     };
   }, []);
 
-  if (loading) {
-    return <p className="text-muted">Loading…</p>;
+  if (loading && !data) {
+    return (
+      <div className="page-stack" aria-busy>
+        <div className="animate-pulse space-y-3">
+          <div className="h-7 w-40 rounded-lg bg-surface-elevated" />
+          <div className="h-4 w-64 rounded bg-surface-elevated" />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className={`h-11 rounded-xl bg-surface-elevated ${i === 4 ? "col-span-2" : ""}`}
+            />
+          ))}
+        </div>
+        <div className="h-28 rounded-2xl bg-surface-elevated" />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="h-24 rounded-2xl bg-surface-elevated" />
+          <div className="h-24 rounded-2xl bg-surface-elevated" />
+        </div>
+      </div>
+    );
   }
 
   if (error || !data) {
@@ -93,6 +144,9 @@ export default function HomePage() {
 
   return (
     <div className="page-stack">
+      {refreshing ? (
+        <p className="text-xs font-semibold text-muted">Updating…</p>
+      ) : null}
       <PageHeader title="Welcome" description="Rentals, stock, and payments in one place." />
 
       {data.isNew ? (
@@ -181,7 +235,7 @@ export default function HomePage() {
                   className="block rounded-lg border border-border/60 px-4 py-3 hover:bg-surface-elevated"
                 >
                   <p className="font-semibold text-foreground">
-                    {order.eventName || order.customerName || "Rental"}
+                    {order.customerName || "Rental"}
                   </p>
                   <p className="text-sm text-muted">{orderLinesSummary(order.lines)}</p>
                   {order.offerTotal > 0 && (

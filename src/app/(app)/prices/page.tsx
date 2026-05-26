@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { WholeNumberField } from "@/components/FormField";
-import { HelpTip } from "@/components/ux/HelpTip";
 import { PageHeader } from "@/components/ux/PageHeader";
 import type { PricingConfig } from "@/lib/pricing-config";
 import { DEFAULT_PRICING_CONFIG } from "@/lib/pricing-config";

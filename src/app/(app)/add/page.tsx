@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { BackLink } from "@/components/ux/BackLink";
-import { HelpTip } from "@/components/ux/HelpTip";
 import { PageHeader } from "@/components/ux/PageHeader";
 import { WholeNumberField } from "@/components/FormField";
 import { TABLE_SIZE_LABELS } from "@/lib/constants";

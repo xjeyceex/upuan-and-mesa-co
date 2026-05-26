@@ -22,7 +22,6 @@ type Order = {
   id: string;
   orderNumber: string;
   customerName: string | null;
-  eventName: string | null;
   eventDate: string | null;
   status: OrderStatus;
   offerTotal: number;
@@ -45,7 +44,10 @@ export default function OrdersPage() {
   }, [status]);
 
   useEffect(() => {
-    load();
+    const t = setTimeout(() => {
+      void load();
+    }, 0);
+    return () => clearTimeout(t);
   }, [load]);
 
   return (
@@ -93,7 +95,7 @@ export default function OrdersPage() {
                       {order.orderNumber}
                     </p>
                     <p className="mt-0.5 truncate text-sm font-medium text-foreground">
-                      {order.eventName || order.customerName || "No name yet"}
+                      {order.customerName || "No name yet"}
                     </p>
                     <p className="mt-1 text-sm text-muted">
                       {orderLinesSummary(order.lines)}

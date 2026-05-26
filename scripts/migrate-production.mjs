@@ -10,5 +10,6 @@ if (url.startsWith("libsql:")) {
   console.log("Setting up Turso schema…");
   execSync("node scripts/deploy-turso.mjs", { stdio: "inherit" });
 } else {
-  console.log("Skipping Turso setup (local SQLite — not Turso).");
+  console.log("Local SQLite — syncing schema…");
+  execSync("npx prisma db push", { stdio: "inherit" });
 }
